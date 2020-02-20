@@ -1,10 +1,10 @@
-package gr.forth.ics.isl.elas4rdfrest;
+package gr.forth.ics.isl.elas4rdf.rest;
 
 import java.io.IOException;
 
-import gr.forth.ics.isl.elas4rdfrest.Elasticsearch.ElasticController;
-import gr.forth.ics.isl.elas4rdfrest.Model.Entities;
-import gr.forth.ics.isl.elas4rdfrest.Model.Triples;
+import gr.forth.ics.isl.elas4rdf.rest.Elasticsearch.ElasticController;
+import gr.forth.ics.isl.elas4rdf.rest.Model.Entities;
+import gr.forth.ics.isl.elas4rdf.rest.Model.Triples;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.search.SearchHits;
 import org.springframework.web.bind.annotation.GetMapping;

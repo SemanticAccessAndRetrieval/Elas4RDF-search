@@ -1,4 +1,4 @@
-package gr.forth.ics.isl.elas4rdfrest.Model;
+package gr.forth.ics.isl.elas4rdf.rest.Model;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -18,7 +18,6 @@ import java.util.Map;
 public class Triples {
 
     private List<Map<String, String>> results;
-
 
     /**
      * Parses @param hits returned by Elasticsearch HighLevel client

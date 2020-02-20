@@ -1,4 +1,4 @@
-package gr.forth.ics.isl.elas4rdfrest.SpringBoot;
+package gr.forth.ics.isl.elas4rdf.rest.SpringBoot;
 
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;

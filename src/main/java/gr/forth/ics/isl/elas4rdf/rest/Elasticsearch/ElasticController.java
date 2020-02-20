@@ -1,6 +1,6 @@
-package gr.forth.ics.isl.elas4rdfrest.Elasticsearch;
+package gr.forth.ics.isl.elas4rdf.rest.Elasticsearch;
 
-import gr.forth.ics.isl.elas4rdfrest.Controller;
+import gr.forth.ics.isl.elas4rdf.rest.Controller;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;

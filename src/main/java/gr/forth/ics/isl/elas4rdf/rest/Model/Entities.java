@@ -1,4 +1,4 @@
-package gr.forth.ics.isl.elas4rdfrest.Model;
+package gr.forth.ics.isl.elas4rdf.rest.Model;
 
 
 /**
