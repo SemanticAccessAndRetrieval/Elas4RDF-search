@@ -1,4 +1,4 @@
-package gr.forth.ics.isl.elas4rdf.rest.Model;
+package gr.forth.ics.isl.elas4rdfrest.Model;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -13,7 +13,7 @@ import java.util.Map;
 
 
 /**
- * Models the return type of requests on <host:port>/elas4rdf/triples
+ * Models the requests of type : triples
  */
 public class Triples {
 
@@ -21,7 +21,7 @@ public class Triples {
 
     /**
      * Parses @param hits returned by Elasticsearch HighLevel client
-     * and creates results as a List of Map<String,String> with keys:
+     * and creates triple-results as a List of Map<String,String> with keys:
      * "sub", "pre", "obj", "sub_ext", "obj_ext", "score"
      *
      * @param hits : Elasticsearch HighLevel answer
@@ -75,7 +75,7 @@ public class Triples {
 
     /**
      * Parses @param jsonBody returned by Elasticsearch LowLevel client
-     * and creates results as a List of Map<String,String> with keys:
+     * and creates triple-results as a List of Map<String,String> with keys:
      * "sub", "pre", "obj", "sub_ext", "obj_ext", "score"
      *
      * @param jsonBody : Elasticsearch LowLevel answer

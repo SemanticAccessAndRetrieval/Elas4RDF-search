@@ -1,4 +1,4 @@
-package gr.forth.ics.isl.elas4rdf.rest.SpringBoot;
+package gr.forth.ics.isl.elas4rdfrest;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
