@@ -1,7 +1,9 @@
 package gr.forth.ics.isl.elas4rdfrest;
 
 import java.io.IOException;
+import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -12,13 +14,15 @@ import gr.forth.ics.isl.elas4rdfrest.Model.Response;
 import gr.forth.ics.isl.elas4rdfrest.Model.Triples;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.search.SearchHits;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.boot.web.servlet.error.ErrorController;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.http.HttpServletRequest;
 
 @RestController
-public class Controller {
+public class Controller implements ErrorController {
 
 
     public static String INDEX_NAME = "mini-eindex";
@@ -46,8 +50,6 @@ public class Controller {
                              @RequestParam(value = "type", defaultValue = "both") String type,
                              @RequestBody(required = false) String body
     ) throws IOException {
-
-        System.out.println("eeee");
 
         try {
             Controller.LIMIT_RESULTS = Integer.parseInt(size);
@@ -114,9 +116,50 @@ public class Controller {
         return false;
     }
 
-    @GetMapping("/error")
-    public void error() {
-        System.out.println("ERRROR");
+    @RequestMapping(value = "/error")
+    public String error(HttpServletRequest request) throws IOException {
+        Object status = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
+        Object exception = "", exception_type = "";
+        boolean param_error = false;
+
+        /* Identify exception */
+        if (request.getAttribute(RequestDispatcher.ERROR_EXCEPTION) != null) {
+            exception = request.getAttribute(RequestDispatcher.ERROR_EXCEPTION).toString();
+
+            /* Param error */
+            if (exception.toString().contains("java.lang.IllegalArgumentException")) {
+                param_error = true;
+            }
+        }
+
+        if (status != null) {
+            Integer statusCode = Integer.valueOf(status.toString());
+            String error = "";
+
+            if (statusCode == HttpStatus.NOT_FOUND.value()) {
+                return "Error 404 : NOT FOUND";
+            } else if (statusCode == HttpStatus.INTERNAL_SERVER_ERROR.value()) {
+                error += "Server Error 505" + "<br>" + exception + "<br> <br> <br>";
+
+                /* Print help message for URL params */
+                if (param_error) {
+                    error += "<u>URL PARAMS</u>" +
+                            "<br> <br>" +
+                            "ΗIGH-LEVEL syntax params: <b>query</b>=[string] <b>size</b>=[int] <b>index</b>=[string] <b>field</b>=[string] <b>type</b>=[string] " +
+                            "<br> <br>" +
+                            "LOW-LEVEL syntax params: <b>body</b>=[json]";
+                }
+                return error;
+            }
+
+        }
+        return "error";
+    }
+
+    @Override
+    public String getErrorPath() {
+        return "/error";
+
     }
 
 }

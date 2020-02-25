@@ -86,7 +86,6 @@ public class Entities {
             entityRes.put("ext", entitiesExt.get(entity));
 
             this.results.add(entityRes);
-            System.out.println(entity + " -- " + gain);
 
         }
 

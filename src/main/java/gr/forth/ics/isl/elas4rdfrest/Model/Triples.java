@@ -3,6 +3,7 @@ package gr.forth.ics.isl.elas4rdfrest.Model;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import gr.forth.ics.isl.elas4rdfrest.Controller;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 
@@ -29,7 +30,13 @@ public class Triples {
     public Triples(SearchHits hits) {
         results = new ArrayList<>();
 
+        int numHit = 0;
+
         for (SearchHit hit : hits) {
+
+            if (numHit > Controller.LIMIT_RESULTS) {
+                break;
+            }
 
             Map<String, String> result = new HashMap<>();
             boolean literal = false;
@@ -69,6 +76,8 @@ public class Triples {
 
             results.add(result);
 
+            numHit++;
+
         }
 
     }
@@ -83,6 +92,8 @@ public class Triples {
     public Triples(String jsonBody) {
 
         results = new ArrayList<>();
+        int numHit = 0;
+
 
         try {
             JsonObject jsonObject = new JsonParser().parse(jsonBody).getAsJsonObject();
@@ -90,6 +101,9 @@ public class Triples {
 
             for (int i = 0; i < arr.size(); i++) {
 
+                if (numHit > Controller.LIMIT_RESULTS) {
+                    break;
+                }
                 Map<String, String> result = new HashMap<>();
                 JsonObject hit = arr.get(i).getAsJsonObject();
                 JsonObject hit_src = arr.get(i).getAsJsonObject().get("_source").getAsJsonObject();
@@ -125,6 +139,8 @@ public class Triples {
                 result.put("score", hit.get("_score").getAsString());
 
                 results.add(result);
+
+                numHit++;
 
             }
         } catch (Exception e) {

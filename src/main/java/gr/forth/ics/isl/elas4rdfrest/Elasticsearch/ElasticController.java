@@ -185,7 +185,6 @@ public class ElasticController {
         request.addParameter("size", Integer.toString(Controller.LIMIT_RESULTS));
         String responseBody = EntityUtils.toString(restLowClient.performRequest(request).getEntity());
 
-        System.out.println(responseBody);
         return responseBody;
     }
 
