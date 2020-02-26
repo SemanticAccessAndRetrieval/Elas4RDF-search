@@ -35,6 +35,17 @@ public class Response {
 
     }
 
+    public static String getHelpMessage() {
+        return "<u>URL PARAMS</u>" +
+                "<br> <br>" +
+                "ΗIGH-LEVEL syntax params: <br> <br>" +
+                "&nbsp; &nbsp; &nbsp; required: <b>query</b> = [string] <b>index</b>=[string] <br>" +
+                "&nbsp; &nbsp; &nbsp; optional: <b>size</b>=[int] <b>field</b>=[string] <b>type</b>=[string] " +
+                "<br> <br>" +
+                "LOW-LEVEL syntax params: <br> <br> " +
+                "&nbsp; &nbsp; &nbsp; <b>body</b>=[json]";
+    }
+
     public Map<String, Object> getResults() {
         return results;
     }

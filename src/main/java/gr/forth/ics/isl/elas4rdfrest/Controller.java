@@ -25,7 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 public class Controller implements ErrorController {
 
 
-    public static String INDEX_NAME = "mini-eindex";
+    public static String INDEX_NAME = "";
     public static int LIMIT_RESULTS = 20;
     public static TimeValue elasticTook;
     private static final ElasticController elasticControl = new ElasticController();
@@ -43,12 +43,13 @@ public class Controller implements ErrorController {
      * @throws IOException
      */
     @GetMapping("/")
-    public Response response(@RequestParam(value = "size", defaultValue = "10") String size,
-                             @RequestParam(value = "index", defaultValue = "bindex") String index,
-                             @RequestParam(value = "query", defaultValue = "") String query,
-                             @RequestParam(value = "field", defaultValue = "allKeywords") String field,
-                             @RequestParam(value = "type", defaultValue = "both") String type,
-                             @RequestBody(required = false) String body
+    public Response response(
+            @RequestParam(value = "query") String query,
+            @RequestParam(value = "index") String index,
+            @RequestParam(value = "size", defaultValue = "10") String size,
+            @RequestParam(value = "field", defaultValue = "allKeywords") String field,
+            @RequestParam(value = "type", defaultValue = "both") String type,
+            @RequestBody(required = false) String body
     ) throws IOException {
 
         try {
@@ -57,9 +58,7 @@ public class Controller implements ErrorController {
             Controller.LIMIT_RESULTS = 10;
         }
 
-        if (!index.equals("bindex")) {
-            Controller.INDEX_NAME = index;
-        }
+        Controller.INDEX_NAME = index;
 
 
         /* Serve response based on the request param 'type' */
@@ -139,21 +138,25 @@ public class Controller implements ErrorController {
             if (statusCode == HttpStatus.NOT_FOUND.value()) {
                 return "Error 404 : NOT FOUND";
             } else if (statusCode == HttpStatus.INTERNAL_SERVER_ERROR.value()) {
-                error += "Server Error 505" + "<br>" + exception + "<br> <br> <br>";
+                error = "Server Error 505" + "<br>" + exception + "<br> <br> <br>";
 
                 /* Print help message for URL params */
                 if (param_error) {
-                    error += "<u>URL PARAMS</u>" +
-                            "<br> <br>" +
-                            "ΗIGH-LEVEL syntax params: <b>query</b> = [string] <b>size</b>=[int] <b>index</b>=[string] <b>field</b>=[string] <b>type</b>=[string] " +
-                            "<br> <br>" +
-                            "LOW-LEVEL syntax params: <b>body</b>=[json]";
+                    error += Response.getHelpMessage();
                 }
+
                 return error;
+
+            } else if (statusCode == HttpStatus.BAD_REQUEST.value()) {
+                error = "Error 400 : BAD REQUEST <br> <br> <br>" +
+                        Response.getHelpMessage();
+
+                return error;
+
             }
 
         }
-        return "error";
+        return "error" + status;
     }
 
     @Override
