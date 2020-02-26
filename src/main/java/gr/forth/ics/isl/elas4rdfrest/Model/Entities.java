@@ -95,4 +95,8 @@ public class Entities {
         return results;
     }
 
+    public long getTotal_res() {
+        return results.size();
+    }
+
 }

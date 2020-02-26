@@ -19,6 +19,7 @@ import java.util.Map;
 public class Triples {
 
     private List<Map<String, String>> results;
+    private long total_results = 0;
 
     /**
      * Parses @param hits returned by Elasticsearch HighLevel client
@@ -31,6 +32,7 @@ public class Triples {
         results = new ArrayList<>();
 
         int numHit = 0;
+        this.total_results = hits.totalHits;
 
         for (SearchHit hit : hits) {
 
@@ -98,6 +100,7 @@ public class Triples {
         try {
             JsonObject jsonObject = new JsonParser().parse(jsonBody).getAsJsonObject();
             JsonArray arr = jsonObject.getAsJsonObject("hits").getAsJsonArray("hits");
+            this.total_results = Long.parseLong(jsonObject.getAsJsonObject("hits").get("total").getAsString());
 
             for (int i = 0; i < arr.size(); i++) {
 
@@ -154,4 +157,5 @@ public class Triples {
         return results;
     }
 
+    public long getTotal_results() {return total_results;}
 }

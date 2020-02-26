@@ -30,6 +30,7 @@ Queries are expressed through the `GET /` method while requests accept either a 
     
     e.g. a multi-match type query
    ```
+  body = 
   {
     "query": {
       "multi_match" : {

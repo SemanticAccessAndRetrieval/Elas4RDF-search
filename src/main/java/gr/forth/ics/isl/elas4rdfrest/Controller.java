@@ -145,7 +145,7 @@ public class Controller implements ErrorController {
                 if (param_error) {
                     error += "<u>URL PARAMS</u>" +
                             "<br> <br>" +
-                            "ΗIGH-LEVEL syntax params: <b>query</b>=[string] <b>size</b>=[int] <b>index</b>=[string] <b>field</b>=[string] <b>type</b>=[string] " +
+                            "ΗIGH-LEVEL syntax params: <b>query</b> = [string] <b>size</b>=[int] <b>index</b>=[string] <b>field</b>=[string] <b>type</b>=[string] " +
                             "<br> <br>" +
                             "LOW-LEVEL syntax params: <b>body</b>=[json]";
                 }
