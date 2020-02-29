@@ -45,17 +45,19 @@ public class Triples {
             String objNspace = "", objK = "", obj;
 
             Map<String, Object> sourceMap = hit.getSourceAsMap();
-            String sub_ext = "", obj_ext = "";
+            String sub_ext = "", obj_ext = "", pre_ext = "";
 
             if (sourceMap.containsKey("rdfs_comment_sub")) {
                 sub_ext = sourceMap.get("rdfs_comment_sub").toString();
             }
+
+            if (sourceMap.containsKey("rdfs_comment_pre")) {
+                pre_ext = sourceMap.get("rdfs_comment_pre").toString();
+            }
+
             if (sourceMap.containsKey("rdfs_comment_obj")) {
                 obj_ext = sourceMap.get("rdfs_comment_obj").toString();
             }
-
-            result.put("sub", sourceMap.get("subjectNspaceKeys").toString() + "/" + sourceMap.get("subjectKeywords"));
-            result.put("pre", sourceMap.get("predicateNspaceKeys").toString() + "/" + sourceMap.get("predicateKeywords"));
 
             if (sourceMap.get("objectNspaceKeys").toString().equals("")) {
                 literal = true;
@@ -71,9 +73,18 @@ public class Triples {
                 obj = objNspace + "/" + objK;
             }
 
+            result.put("sub", sourceMap.get("subjectNspaceKeys").toString() + "/" + sourceMap.get("subjectKeywords"));
+            result.put("pre", sourceMap.get("predicateNspaceKeys").toString() + "/" + sourceMap.get("predicateKeywords"));
             result.put("obj", obj);
+
+            result.put("sub_keywords", sourceMap.get("subjectKeywords").toString());
+            result.put("pre_keywords", sourceMap.get("predicateKeywords").toString());
+            result.put("obj_keywords", sourceMap.get("objectKeywords").toString());
+
             result.put("sub_ext", sub_ext);
+            result.put("pre_ext", pre_ext);
             result.put("obj_ext", obj_ext);
+
             result.put("score", String.valueOf(hit.getScore()));
 
             results.add(result);
@@ -112,10 +123,7 @@ public class Triples {
                 JsonObject hit_src = arr.get(i).getAsJsonObject().get("_source").getAsJsonObject();
                 boolean literal = false;
                 String objNspace = "", objK = "", obj;
-                String sub_ext = "", obj_ext = "";
-
-                result.put("sub", hit_src.get("subjectNspaceKeys").getAsString() + "/" + hit_src.get("subjectKeywords").getAsString());
-                result.put("pre", hit_src.get("predicateNspaceKeys").getAsString() + "/" + hit_src.get("predicateKeywords").getAsString());
+                String sub_ext = "", obj_ext = "", pre_ext = "";
 
                 if (hit_src.get("objectNspaceKeys").getAsString().equals("")) {
                     literal = true;
@@ -131,14 +139,33 @@ public class Triples {
                     obj = objNspace + "/" + objK;
                 }
 
-                result.put("obj", obj);
-
-                try {
-                    result.put("sub_ext", hit_src.get("rdfs_comment_sub").toString());
-                    result.put("obj_ext", hit_src.get("rdfs_comment_obj").toString());
-                } catch (Exception e) {
+                if (hit_src.get("rdfs_comment_sub") != null) {
+                    sub_ext = hit_src.get("rdfs_comment_sub").toString();
 
                 }
+
+                if (hit_src.get("rdfs_comment_pre") != null) {
+                    pre_ext = hit_src.get("rdfs_comment_pre").toString();
+
+                }
+
+                if (hit_src.get("rdfs_comment_obj") != null) {
+                    obj_ext = hit_src.get("rdfs_comment_obj").toString();
+
+                }
+
+                result.put("sub", hit_src.get("subjectNspaceKeys").getAsString() + "/" + hit_src.get("subjectKeywords").getAsString());
+                result.put("pre", hit_src.get("predicateNspaceKeys").getAsString() + "/" + hit_src.get("predicateKeywords").getAsString());
+                result.put("obj", obj);
+
+                result.put("sub_keywords", hit_src.get("subjectKeywords").getAsString());
+                result.put("pre_keywords", hit_src.get("predicateKeywords").getAsString());
+                result.put("obj_keywords", hit_src.get("objectKeywords").getAsString());
+
+                result.put("sub_ext", sub_ext);
+                result.put("pre_ext", pre_ext);
+                result.put("obj_ext", obj_ext);
+
                 result.put("score", hit.get("_score").getAsString());
 
                 results.add(result);
@@ -157,5 +184,7 @@ public class Triples {
         return results;
     }
 
-    public long getTotal_results() {return total_results;}
+    public long getTotal_results() {
+        return total_results;
+    }
 }

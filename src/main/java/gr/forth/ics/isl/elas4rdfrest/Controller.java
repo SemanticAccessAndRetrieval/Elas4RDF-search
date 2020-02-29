@@ -44,8 +44,8 @@ public class Controller implements ErrorController {
      */
     @GetMapping("/")
     public Response response(
-            @RequestParam(value = "query") String query,
-            @RequestParam(value = "index") String index,
+            @RequestParam(value = "query", defaultValue = "") String query,
+            @RequestParam(value = "index", defaultValue = "terms_bindex") String index,
             @RequestParam(value = "size", defaultValue = "10") String size,
             @RequestParam(value = "field", defaultValue = "allKeywords") String field,
             @RequestParam(value = "type", defaultValue = "both") String type,
@@ -92,6 +92,11 @@ public class Controller implements ErrorController {
 
 
     public Triples getTriples(String query, String body, String index, String field) throws IOException {
+
+        System.out.println("elas4rdf_rest: getTriples query.empty: " + query.isEmpty());
+        System.out.println("elas4rdf_rest: getTriples body: " + body);
+        System.out.println("elas4rdf_rest: getTriples index: " + index);
+
         // low-level client -> use body
         if (query.isEmpty()) {
             String elResponse = elasticControl.restLow(body);
