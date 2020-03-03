@@ -14,10 +14,18 @@ public class Entities {
 
     private List<Map<String, String>> results;
 
+    private double max_score = 0;
+
     public Entities(List<Map<String, String>> triples) {
         createEntities(triples);
     }
 
+    /**
+     * Constructs a ranking list of entities by grouping triples
+     * of the same URI (expressed either in subject or object.
+     *
+     * @param triples : ranked list of triples
+     */
     public void createEntities(List<Map<String, String>> triples) {
 
         Map<String, Double> entitiesGain = new HashMap<>();
@@ -68,13 +76,22 @@ public class Entities {
 
         }
 
-
         /* prepare response */
         this.results = new ArrayList<>();
         entitiesGain = entitiesGain.entrySet()
                 .stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+
+
+        /* store max-score of entities for normalization */
+        try {
+            String[] max_e = entitiesGain.entrySet().toArray()[0].toString().split("=");
+            this.max_score = Double.parseDouble(max_e[max_e.length - 1]);
+
+        } catch (Exception e) {
+            System.err.println("Elas4RDF-rest, error when parsing entities - number format of score.\n\t" + e.getMessage());
+        }
 
         for (Map.Entry<String, Double> e : entitiesGain.entrySet()) {
             String entity = e.getKey();
@@ -83,11 +100,21 @@ public class Entities {
 
             entityRes.put("entity", entity);
             entityRes.put("gain", Double.toString(gain));
+            entityRes.put("score", Double.toString(getNormScore(gain)));
             entityRes.put("ext", entitiesExt.get(entity));
 
             this.results.add(entityRes);
 
         }
+
+    }
+
+    private double getNormScore(double score) {
+        if (this.max_score == 0) {
+            return max_score;
+        }
+
+        return score / max_score;
 
     }
 
