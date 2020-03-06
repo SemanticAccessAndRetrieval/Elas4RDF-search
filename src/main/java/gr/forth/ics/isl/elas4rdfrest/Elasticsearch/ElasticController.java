@@ -8,11 +8,16 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.util.EntityUtils;
+import org.elasticsearch.action.admin.indices.analyze.AnalyzeRequest;
+import org.elasticsearch.action.admin.indices.analyze.AnalyzeResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.*;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHits;
@@ -189,6 +194,38 @@ public class ElasticController {
         String responseBody = EntityUtils.toString(restLowClient.performRequest(request).getEntity());
 
         return responseBody;
+    }
+
+    /**
+     * Analyzes (tokenizes, stems ..) an input text of keywords.
+     *
+     * @param field : analyze based on particular field
+     * @param text  : input keywords
+     * @return
+     */
+    public Set<String> analyze(String field, String text) {
+
+        Set<String> analyzedKeywords = new HashSet<>();
+        AnalyzeRequest request = new AnalyzeRequest();
+        request.index(Controller.INDEX_NAME);
+        request.field(field);
+        request.text(text);
+
+        try {
+
+            AnalyzeResponse response = restHighClient.indices().analyze(request, RequestOptions.DEFAULT);
+            List<AnalyzeResponse.AnalyzeToken> tokens = response.getTokens();
+
+
+            for (AnalyzeResponse.AnalyzeToken token : tokens) {
+                analyzedKeywords.add(token.getTerm());
+            }
+        } catch (IOException e) {
+
+        }
+
+        return analyzedKeywords;
+
     }
 
 }

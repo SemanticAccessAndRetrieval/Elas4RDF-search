@@ -5,7 +5,6 @@ import gr.forth.ics.isl.elas4rdfrest.Controller;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Models a request of type "entities"
@@ -13,20 +12,27 @@ import java.util.stream.Stream;
 public class Entities {
 
     private List<Map<String, String>> results;
+    private Set<String> analyzedQueryTokens;
+    private final double e = Math.exp(1);
 
     private double max_score = 0;
 
-    public Entities(List<Map<String, String>> triples) {
-        createEntities(triples);
+    public Entities(String query, List<Map<String, String>> triplesRes) {
+
+        /* store analyzed (e.g. stemming) query keywords */
+        analyzedQueryTokens = Controller.elasticControl.analyze("subjectKeywords", query);
+
+        createEntities(triplesRes);
+
     }
 
     /**
-     * Constructs a ranking list of entities by grouping triples
+     * Constructs a ranking list of entities by grouping (aggregating) triplesRes
      * of the same URI (expressed either in subject or object)
      *
-     * @param triples : ranked list of triples
+     * @param triplesRes : ranked list of triplesRes
      */
-    public void createEntities(List<Map<String, String>> triples) {
+    public void createEntities(List<Map<String, String>> triplesRes) {
 
         Map<String, Double> entitiesGain = new HashMap<>();
         Map<String, String> entitiesExt = new HashMap<>();
@@ -35,17 +41,22 @@ public class Entities {
         double max_score = 0, min_score = 0;
         int i = 1;
 
-        if (!triples.isEmpty()) {
-            max_score = Double.parseDouble(triples.get(0).get("score"));
-            min_score = Double.parseDouble(triples.get(triples.size() - 1).get("score"));
+        if (!triplesRes.isEmpty()) {
+            max_score = Double.parseDouble(triplesRes.get(0).get("score"));
+            min_score = Double.parseDouble(triplesRes.get(triplesRes.size() - 1).get("score"));
         }
 
         /* construct entities */
-        for (Map<String, String> triple : triples) {
+        for (Map<String, String> triple : triplesRes) {
 
             double score = Double.parseDouble(triple.get("score"));
             double norm_score = 1;
             double gain;
+
+            String subject = triple.get("sub");
+            String object = triple.get("obj");
+            String sub_keys = triple.get("sub_keywords");
+            String obj_keys = triple.get("obj_keywords");
 
             /* normalize score */
             if (max_score != min_score) {
@@ -56,25 +67,24 @@ public class Entities {
             gain = (Math.pow(2, norm_score) - 1) / (Math.log(i + 1) / Math.log(2));
 
             /* Store entities based on subject OR/AND object */
-            String subject = triple.get("sub");
-            String object = triple.get("obj");
-            String subject_keys = triple.get("sub_keywords");
-
             if (Controller.isResource(subject)) {
-                double local_gain = 0;
+                /* apply aggregation penalty */
+                double finalLocal_gain = gain * calculateAggregationPenalty(sub_keys);
 
-                /* if resource does not a contain a query keyword -> apply aggregation penalty */
-                if (!subject_keys.contains("<strong>")) {
-                    local_gain = gain * Controller.aggregationPenalty;
-                }
+                System.out.println("subject: " + sub_keys);
+                System.out.println("\t: gain before: " + gain);
+                System.out.println("\t: gain after: " + finalLocal_gain);
 
-                double finalLocal_gain = local_gain;
+
                 entitiesGain.compute(subject, (k, v) -> (v == null) ? finalLocal_gain : v + finalLocal_gain);
                 entitiesExt.putIfAbsent(subject, triple.get("sub_ext"));
             }
 
             if (Controller.isResource(object)) {
-                entitiesGain.compute(object, (k, v) -> (v == null) ? gain : v + gain);
+                /* apply aggregation penalty */
+                double finalLocal_gain = gain * calculateAggregationPenalty(obj_keys);
+
+                entitiesGain.compute(object, (k, v) -> (v == null) ? finalLocal_gain : v + finalLocal_gain);
                 entitiesExt.putIfAbsent(object, triple.get("obj_ext"));
             }
 
@@ -119,6 +129,37 @@ public class Entities {
 
     }
 
+    /**
+     * If a resource (URI) does not a contain (multiple) query keywords -> apply aggregation penalty
+     *
+     * @param keywords : of the URI
+     * @return
+     */
+    private double calculateAggregationPenalty(String keywords) {
+
+        if (!Controller.aggregationPenalty) {
+            return 1;
+        }
+
+        Set<String> analyzedKeywords = Controller.elasticControl.analyze("subjectKeywords", keywords);
+        analyzedKeywords.retainAll(analyzedQueryTokens);
+
+        /* t : number of common terms between URI keywords & query
+         *  n : number of query keywords
+         * */
+        int t = analyzedKeywords.size();
+        int n = analyzedQueryTokens.size();
+
+        return (Math.pow(e, t) / (2 * Math.pow(e, n) + 0.5));
+
+    }
+
+    /**
+     * Normalizes an entity score
+     *
+     * @param score
+     * @return
+     */
     private double getNormScore(double score) {
         if (this.max_score == 0) {
             return max_score;

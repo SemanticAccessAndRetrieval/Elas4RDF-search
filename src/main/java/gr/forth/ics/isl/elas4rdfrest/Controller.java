@@ -27,10 +27,10 @@ public class Controller implements ErrorController {
 
     public static String INDEX_NAME = "";
     public static int LIMIT_RESULTS = 20;
-    public static double aggregationPenalty;
-    public static boolean highlightResults = true;
+    public static boolean aggregationPenalty = false;
+    public static boolean highlightResults = false;
     public static TimeValue elasticTook;
-    private static final ElasticController elasticControl = new ElasticController();
+    public static final ElasticController elasticControl = new ElasticController();
 
     private static final Set<String> KNOWN_NAME_SPACES
             = Stream.of("http://dbpedia.org/resource").collect(Collectors.toCollection(HashSet::new));
@@ -51,8 +51,8 @@ public class Controller implements ErrorController {
             @RequestParam(value = "size", defaultValue = "10") String size,
             @RequestParam(value = "field", defaultValue = "allKeywords") String field,
             @RequestParam(value = "type", defaultValue = "both") String type,
-            @RequestParam(value = "highlightResults", defaultValue = "true") String highlightRes,
-            @RequestParam(value = "aggregationPenalty", defaultValue = "0.5") String aggregationPenalty,
+            @RequestParam(value = "highlightResults", defaultValue = "false") String highlightResults,
+            @RequestParam(value = "aggregationPenalty", defaultValue = "false") String aggregationPenalty,
             @RequestBody(required = false) String body
     ) throws IOException {
 
@@ -64,17 +64,14 @@ public class Controller implements ErrorController {
             Controller.LIMIT_RESULTS = 10;
         }
 
-        try{
-            Controller.aggregationPenalty = Double.parseDouble(aggregationPenalty);
-        }
-        catch (NumberFormatException e){
-            Controller.aggregationPenalty = 0.5;
-        }
-
         Controller.INDEX_NAME = index;
 
-        if (highlightRes.equals("false")) {
-            Controller.highlightResults = false;
+        if (highlightResults.equals("true")) {
+            Controller.highlightResults = true;
+        }
+
+        if (aggregationPenalty.equals("true")) {
+            Controller.aggregationPenalty = true;
         }
 
         /* Serve response based on the Request Param 'type' */
@@ -89,12 +86,12 @@ public class Controller implements ErrorController {
                 break;
             case "entities":
                 triples = getTriples(query, body, index, field);
-                entities = getEntities(triples);
+                entities = getEntities(query, triples);
                 response = new Response(entities);
                 break;
             case "both":
                 triples = getTriples(query, body, index, field);
-                entities = getEntities(triples);
+                entities = getEntities(query, triples);
                 response = new Response(triples, entities);
                 break;
             default:
@@ -109,24 +106,20 @@ public class Controller implements ErrorController {
 
     public Triples getTriples(String query, String body, String index, String field) throws IOException {
 
-        System.out.println("elas4rdf_rest: getTriples query.empty: " + query.isEmpty());
-        System.out.println("elas4rdf_rest: getTriples body: " + body);
-        System.out.println("elas4rdf_rest: getTriples index: " + index);
-
-        // low-level client -> use body
+        /* low-level client -> use param 'body' */
         if (query.isEmpty()) {
             String elResponse = elasticControl.restLow(body);
             return new Triples(elResponse);
         }
-        // high-level client -> use param 'query'
+        /* high-level client -> use param 'query' */
         else {
             SearchHits elHits = elasticControl.restHigh(index, field, query);
             return new Triples(elHits);
         }
     }
 
-    public Entities getEntities(Triples triples) {
-        return new Entities(triples.getResults());
+    public Entities getEntities(String query, Triples triples) {
+        return new Entities(query, triples.getResults());
     }
 
     public static boolean isResource(String fullUri) {
