@@ -27,6 +27,8 @@ public class Controller implements ErrorController {
 
     public static String INDEX_NAME = "";
     public static int LIMIT_RESULTS = 20;
+    public static double aggregationPenalty;
+    public static boolean highlightResults = true;
     public static TimeValue elasticTook;
     private static final ElasticController elasticControl = new ElasticController();
 
@@ -49,19 +51,33 @@ public class Controller implements ErrorController {
             @RequestParam(value = "size", defaultValue = "10") String size,
             @RequestParam(value = "field", defaultValue = "allKeywords") String field,
             @RequestParam(value = "type", defaultValue = "both") String type,
+            @RequestParam(value = "highlightResults", defaultValue = "true") String highlightRes,
+            @RequestParam(value = "aggregationPenalty", defaultValue = "0.5") String aggregationPenalty,
             @RequestBody(required = false) String body
     ) throws IOException {
 
+        /* parse Request Params */
         try {
             Controller.LIMIT_RESULTS = Integer.parseInt(size);
+
         } catch (NumberFormatException e) {
             Controller.LIMIT_RESULTS = 10;
         }
 
+        try{
+            Controller.aggregationPenalty = Double.parseDouble(aggregationPenalty);
+        }
+        catch (NumberFormatException e){
+            Controller.aggregationPenalty = 0.5;
+        }
+
         Controller.INDEX_NAME = index;
 
+        if (highlightRes.equals("false")) {
+            Controller.highlightResults = false;
+        }
 
-        /* Serve response based on the request param 'type' */
+        /* Serve response based on the Request Param 'type' */
         Triples triples;
         Entities entities;
         Response response;

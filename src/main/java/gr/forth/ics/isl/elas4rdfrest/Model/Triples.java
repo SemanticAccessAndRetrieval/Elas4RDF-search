@@ -6,6 +6,7 @@ import com.google.gson.JsonParser;
 import gr.forth.ics.isl.elas4rdfrest.Controller;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,7 +15,7 @@ import java.util.Map;
 
 
 /**
- * Models the requests of type : triples
+ * Models a request of type "triples"
  */
 public class Triples {
 
@@ -24,7 +25,7 @@ public class Triples {
     /**
      * Parses @param hits returned by Elasticsearch HighLevel client
      * and creates triple-results as a List of Map<String,String> with keys:
-     * "sub", "pre", "obj", "sub_ext", "obj_ext", "score"
+     * "sub", "pre", "obj", "sub_ext", "obj_ext", "score" ..
      *
      * @param hits : Elasticsearch HighLevel answer
      */
@@ -45,6 +46,8 @@ public class Triples {
             String objNspace = "", objK = "", obj;
 
             Map<String, Object> sourceMap = hit.getSourceAsMap();
+            Map<String, HighlightField> highlightMap = hit.getHighlightFields();
+
             String sub_ext = "", obj_ext = "", pre_ext = "";
 
             if (sourceMap.containsKey("rdfs_comment_sub")) {
@@ -85,6 +88,20 @@ public class Triples {
             result.put("pre_ext", pre_ext);
             result.put("obj_ext", obj_ext);
 
+            /* include highlighted fields (override existing) */
+            if (Controller.highlightResults) {
+                if(highlightMap.containsKey("subjectKeywords")){
+                    result.put("sub_keywords", highlightMap.get("subjectKeywords").fragments()[0].string());
+                }
+                if(highlightMap.containsKey("predicateKeywords")){
+                    result.put("pre_keywords", highlightMap.get("predicateKeywords").fragments()[0].string());
+                }
+                if(highlightMap.containsKey("objectKeywords")){
+                    result.put("obj_keywords", highlightMap.get("objectKeywords").fragments()[0].string());
+                }
+            }
+
+
             result.put("score", String.valueOf(hit.getScore()));
 
             results.add(result);
@@ -98,7 +115,7 @@ public class Triples {
     /**
      * Parses @param jsonBody returned by Elasticsearch LowLevel client
      * and creates triple-results as a List of Map<String,String> with keys:
-     * "sub", "pre", "obj", "sub_ext", "obj_ext", "score"
+     * "sub", "pre", "obj", "sub_ext", "obj_ext", "score" ..
      *
      * @param jsonBody : Elasticsearch LowLevel answer
      */

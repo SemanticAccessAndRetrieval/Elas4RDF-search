@@ -96,7 +96,7 @@ public class ElasticController {
             case "allKeywords":
 
                 float ext_b = 0;
-                if (index.equals("eindex")) {
+                if (index.contains("eindex")) {
                     ext_b = 1;
                 }
 
@@ -115,15 +115,17 @@ public class ElasticController {
                 searchSourceBuilder.query(allQueryBuilder);
 
                 /* Highlight specific field(s) */
-                highlightBuilder.field("subjectKeywords");
-                highlightBuilder.field("predicateKeywords");
-                highlightBuilder.field("objectKeywords");
-                highlightBuilder.field("subjectNspaceKeys");
-                //highlightBuilder.field("predicateNspaceKeys");
-                //highlightBuilder.field("objectNspaceKeys");
-                //highlightBuilder.postTags("predicateNspace");
-                highlightBuilder.preTags("<strong>");
-                highlightBuilder.postTags("</strong>");
+                if (Controller.highlightResults) {
+                    highlightBuilder.field("subjectKeywords");
+                    highlightBuilder.field("predicateKeywords");
+                    highlightBuilder.field("objectKeywords");
+                    //highlightBuilder.field("subjectNspaceKeys");
+                    //highlightBuilder.field("predicateNspaceKeys");
+                    //highlightBuilder.field("objectNspaceKeys");
+                    //highlightBuilder.postTags("predicateNspace");
+                    highlightBuilder.preTags("<strong>");
+                    highlightBuilder.postTags("</strong>");
+                }
 
                 break;
 
@@ -138,9 +140,11 @@ public class ElasticController {
                 //        .operator(Operator.OR);
 
                 /* Highlight specific field */
-                highlightBuilder.field(field);
-                highlightBuilder.preTags("<strong>");
-                highlightBuilder.postTags("</strong>");
+                if (Controller.highlightResults) {
+                    highlightBuilder.field(field);
+                    highlightBuilder.preTags("<strong>");
+                    highlightBuilder.postTags("</strong>");
+                }
 
                 QueryBuilder qb = QueryBuilders
                         .boolQuery()
@@ -157,7 +161,6 @@ public class ElasticController {
         searchSourceBuilder.sort(new ScoreSortBuilder().order(SortOrder.DESC));
         searchSourceBuilder.size(Controller.LIMIT_RESULTS);
 
-
         /* Applying source builder upon request */
         searchRequest.source(searchSourceBuilder.highlighter(highlightBuilder));
 
@@ -170,15 +173,15 @@ public class ElasticController {
 
     /**
      * Performs a LowLevel client search. Param is given through
-     * the REST API body.
+     * the REST API 'body'.
      *
-     * @param query : JSON low-level syntax for Elasticsearch
+     * @param body : JSON low-level syntax for Elasticsearch
      * @return
      * @throws IOException
      */
-    public String restLow(String query) throws IOException {
+    public String restLow(String body) throws IOException {
 
-        HttpEntity entity = new NStringEntity(query, ContentType.APPLICATION_JSON);
+        HttpEntity entity = new NStringEntity(body, ContentType.APPLICATION_JSON);
         Request request = new Request("GET", "/" + Controller.INDEX_NAME + "/_search");
         request.setEntity(entity);
         request.addParameter("pretty", "true");

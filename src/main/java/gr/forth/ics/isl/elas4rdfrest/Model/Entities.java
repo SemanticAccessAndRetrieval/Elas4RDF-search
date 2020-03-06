@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Models the requests of type : entities
+ * Models a request of type "entities"
  */
 public class Entities {
 
@@ -22,7 +22,7 @@ public class Entities {
 
     /**
      * Constructs a ranking list of entities by grouping triples
-     * of the same URI (expressed either in subject or object.
+     * of the same URI (expressed either in subject or object)
      *
      * @param triples : ranked list of triples
      */
@@ -58,9 +58,18 @@ public class Entities {
             /* Store entities based on subject OR/AND object */
             String subject = triple.get("sub");
             String object = triple.get("obj");
+            String subject_keys = triple.get("sub_keywords");
 
             if (Controller.isResource(subject)) {
-                entitiesGain.compute(subject, (k, v) -> (v == null) ? gain : v + gain);
+                double local_gain = 0;
+
+                /* if resource does not a contain a query keyword -> apply aggregation penalty */
+                if (!subject_keys.contains("<strong>")) {
+                    local_gain = gain * Controller.aggregationPenalty;
+                }
+
+                double finalLocal_gain = local_gain;
+                entitiesGain.compute(subject, (k, v) -> (v == null) ? finalLocal_gain : v + finalLocal_gain);
                 entitiesExt.putIfAbsent(subject, triple.get("sub_ext"));
             }
 
@@ -93,6 +102,7 @@ public class Entities {
             System.err.println("Elas4RDF-rest, error when parsing entities - number format of score.\n\t" + e.getMessage());
         }
 
+        /* create the response */
         for (Map.Entry<String, Double> e : entitiesGain.entrySet()) {
             String entity = e.getKey();
             Double gain = e.getValue();
