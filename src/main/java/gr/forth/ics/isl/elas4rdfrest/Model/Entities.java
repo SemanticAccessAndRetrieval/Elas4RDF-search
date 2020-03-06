@@ -21,6 +21,8 @@ public class Entities {
 
         /* store analyzed (e.g. stemming) query keywords */
         analyzedQueryTokens = Controller.elasticControl.analyze("subjectKeywords", query);
+        System.out.println("aggregation-penalty: " + Controller.aggregationPenalty);
+
 
         createEntities(triplesRes);
 
@@ -70,11 +72,6 @@ public class Entities {
             if (Controller.isResource(subject)) {
                 /* apply aggregation penalty */
                 double finalLocal_gain = gain * calculateAggregationPenalty(sub_keys);
-
-                System.out.println("subject: " + sub_keys);
-                System.out.println("\t: gain before: " + gain);
-                System.out.println("\t: gain after: " + finalLocal_gain);
-
 
                 entitiesGain.compute(subject, (k, v) -> (v == null) ? finalLocal_gain : v + finalLocal_gain);
                 entitiesExt.putIfAbsent(subject, triple.get("sub_ext"));
@@ -137,7 +134,7 @@ public class Entities {
      */
     private double calculateAggregationPenalty(String keywords) {
 
-        if (!Controller.aggregationPenalty) {
+        if(!Controller.aggregationPenalty){
             return 1;
         }
 

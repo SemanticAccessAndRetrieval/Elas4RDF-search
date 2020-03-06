@@ -27,8 +27,8 @@ public class Controller implements ErrorController {
 
     public static String INDEX_NAME = "";
     public static int LIMIT_RESULTS = 20;
-    public static boolean aggregationPenalty = false;
     public static boolean highlightResults = false;
+    public static boolean aggregationPenalty = true;
     public static TimeValue elasticTook;
     public static final ElasticController elasticControl = new ElasticController();
 
@@ -52,8 +52,9 @@ public class Controller implements ErrorController {
             @RequestParam(value = "field", defaultValue = "allKeywords") String field,
             @RequestParam(value = "type", defaultValue = "both") String type,
             @RequestParam(value = "highlightResults", defaultValue = "false") String highlightResults,
-            @RequestParam(value = "aggregationPenalty", defaultValue = "false") String aggregationPenalty,
+            @RequestParam(value = "aggregationPenalty", defaultValue = "true") String aggregationPenalty,
             @RequestBody(required = false) String body
+
     ) throws IOException {
 
         /* parse Request Params */
@@ -70,7 +71,10 @@ public class Controller implements ErrorController {
             Controller.highlightResults = true;
         }
 
-        if (aggregationPenalty.equals("true")) {
+        if (aggregationPenalty.equals("false")) {
+            Controller.aggregationPenalty = false;
+        }
+        else if (aggregationPenalty.equals("true")){
             Controller.aggregationPenalty = true;
         }
 
