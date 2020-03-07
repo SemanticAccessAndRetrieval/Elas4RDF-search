@@ -14,7 +14,11 @@ import gr.forth.ics.isl.elas4rdfrest.Model.Response;
 import gr.forth.ics.isl.elas4rdfrest.Model.Triples;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.search.SearchHits;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.web.servlet.error.ErrorController;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,7 +38,7 @@ public class Controller implements ErrorController {
 
     private static final Set<String> KNOWN_NAME_SPACES
             = Stream.of("http://dbpedia.org/resource").collect(Collectors.toCollection(HashSet::new));
-
+    
     /**
      * @param query : input query
      * @param size  : input size (default = 10)
@@ -73,8 +77,7 @@ public class Controller implements ErrorController {
 
         if (aggregationPenalty.equals("false")) {
             Controller.aggregationPenalty = false;
-        }
-        else if (aggregationPenalty.equals("true")){
+        } else if (aggregationPenalty.equals("true")) {
             Controller.aggregationPenalty = true;
         }
 
@@ -105,32 +108,6 @@ public class Controller implements ErrorController {
 
         return response;
 
-    }
-
-
-    public Triples getTriples(String query, String body, String index, String field) throws IOException {
-
-        /* low-level client -> use param 'body' */
-        if (query.isEmpty()) {
-            String elResponse = elasticControl.restLow(body);
-            return new Triples(elResponse);
-        }
-        /* high-level client -> use param 'query' */
-        else {
-            SearchHits elHits = elasticControl.restHigh(index, field, query);
-            return new Triples(elHits);
-        }
-    }
-
-    public Entities getEntities(String query, Triples triples) {
-        return new Entities(query, triples.getResults());
-    }
-
-    public static boolean isResource(String fullUri) {
-        for (Object nameSpace : KNOWN_NAME_SPACES) {
-            return fullUri.contains(nameSpace.toString());
-        }
-        return false;
     }
 
     @RequestMapping(value = "/error")
@@ -181,6 +158,31 @@ public class Controller implements ErrorController {
     public String getErrorPath() {
         return "/error";
 
+    }
+
+    public Triples getTriples(String query, String body, String index, String field) throws IOException {
+
+        /* low-level client -> use param 'body' */
+        if (query.isEmpty()) {
+            String elResponse = elasticControl.restLow(body);
+            return new Triples(elResponse);
+        }
+        /* high-level client -> use param 'query' */
+        else {
+            SearchHits elHits = elasticControl.restHigh(index, field, query);
+            return new Triples(elHits);
+        }
+    }
+
+    public Entities getEntities(String query, Triples triples) {
+        return new Entities(query, triples.getResults());
+    }
+
+    public static boolean isResource(String fullUri) {
+        for (Object nameSpace : KNOWN_NAME_SPACES) {
+            return fullUri.contains(nameSpace.toString());
+        }
+        return false;
     }
 
 }

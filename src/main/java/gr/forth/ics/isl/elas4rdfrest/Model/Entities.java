@@ -21,7 +21,10 @@ public class Entities {
 
         /* store analyzed (e.g. stemming) query keywords */
         analyzedQueryTokens = Controller.elasticControl.analyze("subjectKeywords", query);
+
+        System.out.println("#### entities ####");
         System.out.println("aggregation-penalty: " + Controller.aggregationPenalty);
+        System.out.println("query: " + query);
 
 
         createEntities(triplesRes);
@@ -53,7 +56,6 @@ public class Entities {
 
             double score = Double.parseDouble(triple.get("score"));
             double norm_score = 1;
-            double gain;
 
             String subject = triple.get("sub");
             String object = triple.get("obj");
@@ -65,25 +67,29 @@ public class Entities {
                 norm_score = score / max_score;
             }
 
-            /* calculate the 'ndcg-like, log-based' gain */
-            gain = (Math.pow(2, norm_score) - 1) / (Math.log(i + 1) / Math.log(2));
-
             /* Store entities based on subject OR/AND object */
             if (Controller.isResource(subject)) {
                 /* apply aggregation penalty */
-                double finalLocal_gain = gain * calculateAggregationPenalty(sub_keys);
+                double local_norm = norm_score * calculateAggregationPenalty("subjectKeywords", sub_keys);
 
-                entitiesGain.compute(subject, (k, v) -> (v == null) ? finalLocal_gain : v + finalLocal_gain);
+                /* calculate the 'ndcg-like, log-based' gain */
+                double localGain = (Math.pow(2, local_norm) - 1) / (Math.log(i + 1) / Math.log(2));
+
+                entitiesGain.compute(subject, (k, v) -> (v == null) ? localGain : v + localGain);
                 entitiesExt.putIfAbsent(subject, triple.get("sub_ext"));
             }
 
             if (Controller.isResource(object)) {
                 /* apply aggregation penalty */
-                double finalLocal_gain = gain * calculateAggregationPenalty(obj_keys);
+                double local_norm = norm_score * calculateAggregationPenalty("objectKeywords", obj_keys);
 
-                entitiesGain.compute(object, (k, v) -> (v == null) ? finalLocal_gain : v + finalLocal_gain);
+                /* calculate the 'ndcg-like, log-based' gain */
+                double localGain = (Math.pow(2, local_norm) - 1) / (Math.log(i + 1) / Math.log(2));
+
+                entitiesGain.compute(object, (k, v) -> (v == null) ? localGain : v + localGain);
                 entitiesExt.putIfAbsent(object, triple.get("obj_ext"));
             }
+
 
             if (prev_score != score) {
                 prev_score = score;
@@ -132,13 +138,13 @@ public class Entities {
      * @param keywords : of the URI
      * @return
      */
-    private double calculateAggregationPenalty(String keywords) {
+    private double calculateAggregationPenalty(String field, String keywords) {
 
-        if(!Controller.aggregationPenalty){
+        if (!Controller.aggregationPenalty) {
             return 1;
         }
 
-        Set<String> analyzedKeywords = Controller.elasticControl.analyze("subjectKeywords", keywords);
+        Set<String> analyzedKeywords = Controller.elasticControl.analyze(field, keywords);
         analyzedKeywords.retainAll(analyzedQueryTokens);
 
         /* t : number of common terms between URI keywords & query
@@ -147,7 +153,7 @@ public class Entities {
         int t = analyzedKeywords.size();
         int n = analyzedQueryTokens.size();
 
-        return (Math.pow(e, t) / (2 * Math.pow(e, n) + 0.5));
+        return (Math.pow(e, t) / (2 * Math.pow(e, n)) + 0.5);
 
     }
 
