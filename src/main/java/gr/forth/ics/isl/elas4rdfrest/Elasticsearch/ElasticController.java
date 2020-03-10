@@ -15,9 +15,11 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHits;
@@ -31,13 +33,13 @@ public class ElasticController {
 
     private static RestClient restLowClient;
     private static RestHighLevelClient restHighClient;
-    private final String host = "localhost";
-    private final int port = 9200;
+
+    private static String host;
+    private static int port;
 
     public ElasticController() {
         initConnections();
     }
-
 
     /**
      * Starts all connections on both High and Low level clients
@@ -84,7 +86,7 @@ public class ElasticController {
     public SearchHits restHigh(String index, String field, String keywords) throws IOException {
 
         /* Initializing a search request and a search source builder */
-        SearchRequest searchRequest = new SearchRequest(Controller.INDEX_NAME);
+        SearchRequest searchRequest = new SearchRequest(Controller.INDEX);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
         /* Highlight for source builder */
@@ -100,21 +102,14 @@ public class ElasticController {
              */
             case "allKeywords":
 
-                float ext_b = 0;
-                if (index.contains("eindex")) {
-                    ext_b = 1;
-                }
-
                 /* Make query builder */
                 QueryBuilder allQueryBuilder = QueryBuilders
-                        .multiMatchQuery(keywords, "subjectKeywords", "predicateKeywords", "objectKeywords",
-                                "subjectNspaceKeys", "predicateNspaceKeys", "objectNspaceKeys", "rdfs_comment_sub", "rdfs_comment_obj")
+                        .multiMatchQuery(keywords)
                         .type(MultiMatchQueryBuilder.Type.CROSS_FIELDS)
                         .field("subjectKeywords")
                         .field("predicateKeywords")
                         .field("objectKeywords", 2f)
-                        .field("rdfs_comment_sub", ext_b)
-                        .field("rdfs_comment_obj", ext_b)
+                        .fields(Controller.indexFieldsMap)
                         .tieBreaker(0.1f);
 
                 searchSourceBuilder.query(allQueryBuilder);
@@ -124,10 +119,10 @@ public class ElasticController {
                     highlightBuilder.field("subjectKeywords");
                     highlightBuilder.field("predicateKeywords");
                     highlightBuilder.field("objectKeywords");
-                    //highlightBuilder.field("subjectNspaceKeys");
-                    //highlightBuilder.field("predicateNspaceKeys");
-                    //highlightBuilder.field("objectNspaceKeys");
-                    //highlightBuilder.postTags("predicateNspace");
+                    for (String local_field : Controller.indexFieldsList) {
+                        highlightBuilder.field(local_field);
+                    }
+
                     highlightBuilder.preTags("<strong>");
                     highlightBuilder.postTags("</strong>");
                 }
@@ -187,7 +182,7 @@ public class ElasticController {
     public String restLow(String body) throws IOException {
 
         HttpEntity entity = new NStringEntity(body, ContentType.APPLICATION_JSON);
-        Request request = new Request("GET", "/" + Controller.INDEX_NAME + "/_search");
+        Request request = new Request("GET", "/" + Controller.INDEX + "/_search");
         request.setEntity(entity);
         request.addParameter("pretty", "true");
         request.addParameter("size", Integer.toString(Controller.LIMIT_RESULTS));
@@ -207,7 +202,7 @@ public class ElasticController {
 
         Set<String> analyzedKeywords = new HashSet<>();
         AnalyzeRequest request = new AnalyzeRequest();
-        request.index(Controller.INDEX_NAME);
+        request.index(Controller.INDEX);
         request.field(field);
         request.text(text);
 
@@ -227,5 +222,23 @@ public class ElasticController {
         return analyzedKeywords;
 
     }
+
+
+    public static void setHost(String host) {
+        ElasticController.host = host;
+    }
+
+    public static void setPort(int port) {
+        ElasticController.port = port;
+    }
+
+    public static String getHost() {
+        return host;
+    }
+
+    public static int getPort() {
+        return port;
+    }
+
 
 }

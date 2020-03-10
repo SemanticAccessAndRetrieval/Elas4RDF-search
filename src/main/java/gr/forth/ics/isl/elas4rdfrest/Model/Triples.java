@@ -19,12 +19,12 @@ import java.util.Map;
  */
 public class Triples {
 
-    private List<Map<String, String>> results;
+    private List<Map<String, Object>> results;
     private long total_results = 0;
 
     /**
      * Parses @param hits returned by Elasticsearch HighLevel client
-     * and creates triple-results as a List of Map<String,String> with keys:
+     * and creates triple-results as a List of Map<String, Object> with keys:
      * "sub", "pre", "obj", "sub_ext", "obj_ext", "score" ..
      *
      * @param hits : Elasticsearch HighLevel answer
@@ -41,25 +41,33 @@ public class Triples {
                 break;
             }
 
-            Map<String, String> result = new HashMap<>();
-            boolean literal = false;
+            Map<String, Object> result = new HashMap<>();
             String objNspace = "", objK = "", obj;
+            boolean literal = false;
 
             Map<String, Object> sourceMap = hit.getSourceAsMap();
             Map<String, HighlightField> highlightMap = hit.getHighlightFields();
 
-            String sub_ext = "", obj_ext = "", pre_ext = "";
+            Map<String, String> sub_ext = new HashMap<>();
+            Map<String, String> pre_ext = new HashMap<>();
+            Map<String, String> obj_ext = new HashMap<>();
 
-            if (sourceMap.containsKey("rdfs_comment_sub")) {
-                sub_ext = sourceMap.get("rdfs_comment_sub").toString();
-            }
+            /* add  all 'extended' fields */
+            for (String ext_field : Controller.indexFieldsList) {
 
-            if (sourceMap.containsKey("rdfs_comment_pre")) {
-                pre_ext = sourceMap.get("rdfs_comment_pre").toString();
-            }
 
-            if (sourceMap.containsKey("rdfs_comment_obj")) {
-                obj_ext = sourceMap.get("rdfs_comment_obj").toString();
+                if (sourceMap.containsKey(ext_field)) {
+
+                    if (ext_field.endsWith("_sub")) {
+                        sub_ext.put(ext_field, sourceMap.get(ext_field).toString());
+                    } else if (ext_field.endsWith("_pre")) {
+                        pre_ext.put(ext_field, sourceMap.get(ext_field).toString());
+                    } else if (ext_field.endsWith("_obj")) {
+                        obj_ext.put(ext_field, sourceMap.get(ext_field).toString());
+                    }
+
+                }
+
             }
 
             if (sourceMap.get("objectNspaceKeys").toString().equals("")) {
@@ -88,22 +96,41 @@ public class Triples {
             result.put("pre_ext", pre_ext);
             result.put("obj_ext", obj_ext);
 
-            /* include highlighted fields (override existing) */
+            /* include highlighted fields (replace existing) */
             if (Controller.highlightResults) {
-                if(highlightMap.containsKey("subjectKeywords")){
+                if (highlightMap.containsKey("subjectKeywords")) {
                     result.put("sub_keywords", highlightMap.get("subjectKeywords").fragments()[0].string());
                 }
-                if(highlightMap.containsKey("predicateKeywords")){
+                if (highlightMap.containsKey("predicateKeywords")) {
                     result.put("pre_keywords", highlightMap.get("predicateKeywords").fragments()[0].string());
                 }
-                if(highlightMap.containsKey("objectKeywords")){
+                if (highlightMap.containsKey("objectKeywords")) {
                     result.put("obj_keywords", highlightMap.get("objectKeywords").fragments()[0].string());
+                }
+
+                /* add  all 'extended' fields */
+                for (String ext_field : Controller.indexFieldsList) {
+
+                    if (highlightMap.containsKey(ext_field)) {
+
+                        if (ext_field.endsWith("_sub")) {
+                            sub_ext.put(ext_field, highlightMap.get(ext_field).fragments()[0].string());
+                            result.put("sub_ext", sub_ext);
+                        } else if (ext_field.endsWith("_pre")) {
+                            pre_ext.put(ext_field, highlightMap.get(ext_field).fragments()[0].string());
+                            result.put("pre_ext", pre_ext);
+                        } else if (ext_field.endsWith("_obj")) {
+                            obj_ext.put(ext_field, highlightMap.get(ext_field).fragments()[0].string());
+                            result.put("obj_ext", obj_ext);
+                        }
+
+                    }
+
                 }
             }
 
 
             result.put("score", String.valueOf(hit.getScore()));
-
             results.add(result);
 
             numHit++;
@@ -135,12 +162,14 @@ public class Triples {
                 if (numHit > Controller.LIMIT_RESULTS) {
                     break;
                 }
-                Map<String, String> result = new HashMap<>();
+                Map<String, Object> result = new HashMap<>();
                 JsonObject hit = arr.get(i).getAsJsonObject();
                 JsonObject hit_src = arr.get(i).getAsJsonObject().get("_source").getAsJsonObject();
-                boolean literal = false;
                 String objNspace = "", objK = "", obj;
-                String sub_ext = "", obj_ext = "", pre_ext = "";
+                boolean literal = false;
+                Map<String, String> sub_ext = new HashMap<>();
+                Map<String, String> pre_ext = new HashMap<>();
+                Map<String, String> obj_ext = new HashMap<>();
 
                 if (hit_src.get("objectNspaceKeys").getAsString().equals("")) {
                     literal = true;
@@ -156,18 +185,21 @@ public class Triples {
                     obj = objNspace + "/" + objK;
                 }
 
-                if (hit_src.get("rdfs_comment_sub") != null) {
-                    sub_ext = hit_src.get("rdfs_comment_sub").toString();
+                /* add  all 'extended' fields */
+                for (String ext_field : Controller.indexFieldsList) {
 
-                }
+                    if (hit_src.get(ext_field) != null) {
 
-                if (hit_src.get("rdfs_comment_pre") != null) {
-                    pre_ext = hit_src.get("rdfs_comment_pre").toString();
+                        if (ext_field.endsWith("_sub")) {
+                            sub_ext.put(ext_field, hit_src.get(ext_field).toString());
+                        } else if (ext_field.endsWith("_pre")) {
+                            pre_ext.put(ext_field, hit_src.get(ext_field).toString());
+                        } else if (ext_field.endsWith("_obj")) {
+                            obj_ext.put(ext_field, hit_src.get(ext_field).toString());
+                        }
 
-                }
+                    }
 
-                if (hit_src.get("rdfs_comment_obj") != null) {
-                    obj_ext = hit_src.get("rdfs_comment_obj").toString();
 
                 }
 
@@ -191,13 +223,13 @@ public class Triples {
 
             }
         } catch (Exception e) {
-            Map<String, String> result = new HashMap<>();
+            Map<String, Object> result = new HashMap<>();
             result.put("error", "Internal error, JSON parse error.");
             results.add(result);
         }
     }
 
-    public List<Map<String, String>> getResults() {
+    public List<Map<String, Object>> getResults() {
         return results;
     }
 

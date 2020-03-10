@@ -39,8 +39,8 @@ public class Response {
         return "<u>URL PARAMS</u>" +
                 "<br> <br>" +
                 "ΗIGH-LEVEL syntax params: <br> <br>" +
-                "&nbsp; &nbsp; &nbsp; required: <b>query</b> = [string] <b>index</b>=[string] <br>" +
-                "&nbsp; &nbsp; &nbsp; optional: <b>size</b>=[int] <b>field</b>=[string] <b>type</b>=[string] <b>highlightResults</b>=[boolean]" +
+                "&nbsp; &nbsp; &nbsp; required: <b>query</b> = [string] <br>" +
+                "&nbsp; &nbsp; &nbsp; optional: <b>index</b>=[string] <b>size</b>=[int] <b>field</b>=[string] <b>type</b>=[string] <b>highlightResults</b>=[boolean]" +
                 "<br> <br>" +
                 "LOW-LEVEL syntax params: <br> <br> " +
                 "&nbsp; &nbsp; &nbsp; <b>body</b>=[json]";

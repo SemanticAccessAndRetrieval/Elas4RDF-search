@@ -11,13 +11,13 @@ import java.util.stream.Collectors;
  */
 public class Entities {
 
-    private List<Map<String, String>> results;
+    private List<Map<String, Object>> results;
     private Set<String> analyzedQueryTokens;
     private final double e = Math.exp(1);
 
     private double max_score = 0;
 
-    public Entities(String query, List<Map<String, String>> triplesRes) {
+    public Entities(String query, List<Map<String, Object>> triplesRes) {
 
         /* store analyzed (e.g. stemming) query keywords */
         analyzedQueryTokens = Controller.elasticControl.analyze("subjectKeywords", query);
@@ -25,7 +25,6 @@ public class Entities {
         System.out.println("#### entities ####");
         System.out.println("aggregation-penalty: " + Controller.aggregationPenalty);
         System.out.println("query: " + query);
-
 
         createEntities(triplesRes);
 
@@ -37,30 +36,30 @@ public class Entities {
      *
      * @param triplesRes : ranked list of triplesRes
      */
-    public void createEntities(List<Map<String, String>> triplesRes) {
+    private void createEntities(List<Map<String, Object>> triplesRes) {
 
         Map<String, Double> entitiesGain = new HashMap<>();
-        Map<String, String> entitiesExt = new HashMap<>();
+        Map<String, Object> entitiesExt = new HashMap<>();
 
         double prev_score = 0;
         double max_score = 0, min_score = 0;
         int i = 1;
 
         if (!triplesRes.isEmpty()) {
-            max_score = Double.parseDouble(triplesRes.get(0).get("score"));
-            min_score = Double.parseDouble(triplesRes.get(triplesRes.size() - 1).get("score"));
+            max_score = Double.parseDouble(triplesRes.get(0).get("score").toString());
+            min_score = Double.parseDouble(triplesRes.get(triplesRes.size() - 1).get("score").toString());
         }
 
         /* construct entities */
-        for (Map<String, String> triple : triplesRes) {
+        for (Map<String, Object> triple : triplesRes) {
 
-            double score = Double.parseDouble(triple.get("score"));
+            double score = Double.parseDouble(triple.get("score").toString());
             double norm_score = 1;
 
-            String subject = triple.get("sub");
-            String object = triple.get("obj");
-            String sub_keys = triple.get("sub_keywords");
-            String obj_keys = triple.get("obj_keywords");
+            String subject = triple.get("sub").toString();
+            String object = triple.get("obj").toString();
+            String sub_keys = triple.get("sub_keywords").toString();
+            String obj_keys = triple.get("obj_keywords").toString();
 
             /* normalize score */
             if (max_score != min_score) {
@@ -119,7 +118,7 @@ public class Entities {
         for (Map.Entry<String, Double> e : entitiesGain.entrySet()) {
             String entity = e.getKey();
             Double gain = e.getValue();
-            Map<String, String> entityRes = new HashMap<>();
+            Map<String, Object> entityRes = new HashMap<>();
 
             entityRes.put("entity", entity);
             entityRes.put("gain", Double.toString(gain));
@@ -136,7 +135,7 @@ public class Entities {
      * If a resource (URI) does not a contain (multiple) query keywords -> apply aggregation penalty
      *
      * @param keywords : of the URI
-     * @return
+     * @return penalty
      */
     private double calculateAggregationPenalty(String field, String keywords) {
 
@@ -147,7 +146,7 @@ public class Entities {
         Set<String> analyzedKeywords = Controller.elasticControl.analyze(field, keywords);
         analyzedKeywords.retainAll(analyzedQueryTokens);
 
-        /* t : number of common terms between URI keywords & query
+        /*  t : number of common terms between URI keywords & query
          *  n : number of query keywords
          * */
         int t = analyzedKeywords.size();
@@ -160,8 +159,8 @@ public class Entities {
     /**
      * Normalizes an entity score
      *
-     * @param score
-     * @return
+     * @param score : triple score
+     * @return n_score : normalized score
      */
     private double getNormScore(double score) {
         if (this.max_score == 0) {
@@ -172,11 +171,11 @@ public class Entities {
 
     }
 
-    public List<Map<String, String>> getResults() {
+    public List<Map<String, Object>> getResults() {
         return results;
     }
 
-    public long getTotal_res() {
+    long getTotal_res() {
         return results.size();
     }
 

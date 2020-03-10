@@ -1,10 +1,7 @@
 package gr.forth.ics.isl.elas4rdfrest;
 
 import java.io.IOException;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -29,16 +26,80 @@ import javax.servlet.http.HttpServletRequest;
 public class Controller implements ErrorController {
 
 
-    public static String INDEX_NAME = "";
+    public static String INDEX = "";
+    public static Map<String, Float> indexFieldsMap;
+    public static List<String> indexFieldsList;
+
     public static int LIMIT_RESULTS = 20;
     public static boolean highlightResults = false;
     public static boolean aggregationPenalty = true;
     public static TimeValue elasticTook;
-    public static final ElasticController elasticControl = new ElasticController();
+    public static ElasticController elasticControl;
 
     private static final Set<String> KNOWN_NAME_SPACES
             = Stream.of("http://dbpedia.org/resource").collect(Collectors.toCollection(HashSet::new));
-    
+
+    @Autowired
+    private Environment environment;
+
+    /**
+     * Read "application.properties" file
+     * and initialize service.
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    public void initialize() {
+
+        /* store index information */
+        if (environment.containsProperty("index.name")) {
+            INDEX = environment.getProperty("index.name");
+        } else {
+            INDEX = "bindex";
+        }
+
+        if (environment.containsProperty("index.fields")) {
+            indexFieldsMap = new HashMap<>();
+            indexFieldsList = new ArrayList<>(0);
+            for (String field_entry : environment.getProperty("index.fields").split(";")) {
+                String field = field_entry.split("^")[0];
+                Float boost = 1f;
+                indexFieldsMap.put(field, boost);
+                indexFieldsList.add(field);
+            }
+
+        } else {
+            indexFieldsMap = new HashMap<>();
+            indexFieldsList = new ArrayList<>();
+        }
+
+        /* initialize Elasticsearch */
+        if (environment.containsProperty("elastic.address")) {
+            ElasticController.setHost(environment.getProperty("elastic.address"));
+        } else {
+            ElasticController.setHost("localhost");
+        }
+        if (environment.containsProperty("elastic.port")) {
+            try {
+                ElasticController.setPort(Integer.parseInt(environment.getProperty("elastic.port")));
+            } catch (NumberFormatException e) {
+                System.err.println("Elas4RDF: error in application.properties: elastic.port not an integer. Default port (9200) selected");
+                ElasticController.setPort(9200);
+            }
+        } else {
+            ElasticController.setPort(9200);
+        }
+
+        elasticControl = new ElasticController();
+
+        System.out.println("^^^^^ Elas4RDF: initialization completed ^^^^^");
+        System.out.println("index.name: " + INDEX);
+        System.out.println("index.fields: " + indexFieldsMap);
+        System.out.println("elastic.address: " + elasticControl.getHost());
+        System.out.println("elastic.port: " + elasticControl.getPort());
+        System.out.println("^^^^^^^^^^^^");
+
+    }
+
+
     /**
      * @param query : input query
      * @param size  : input size (default = 10)
@@ -51,8 +112,8 @@ public class Controller implements ErrorController {
     @GetMapping("/")
     public Response response(
             @RequestParam(value = "query", defaultValue = "") String query,
-            @RequestParam(value = "index", defaultValue = "terms_bindex") String index,
-            @RequestParam(value = "size", defaultValue = "10") String size,
+            @RequestParam(value = "index", defaultValue = "") String index,
+            @RequestParam(value = "size", defaultValue = "100") String size,
             @RequestParam(value = "field", defaultValue = "allKeywords") String field,
             @RequestParam(value = "type", defaultValue = "both") String type,
             @RequestParam(value = "highlightResults", defaultValue = "false") String highlightResults,
@@ -69,7 +130,9 @@ public class Controller implements ErrorController {
             Controller.LIMIT_RESULTS = 10;
         }
 
-        Controller.INDEX_NAME = index;
+        if (!index.isEmpty()) {
+            Controller.INDEX = index;
+        }
 
         if (highlightResults.equals("true")) {
             Controller.highlightResults = true;
