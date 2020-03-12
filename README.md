@@ -2,10 +2,16 @@
 Performs **keyword** search over **RDF** data, with classic IR techniques, upon triple-based documents using **Elasticsearch** (ES).
 
 This project initializes a REST API for exploiting the indexes created [here](https://github.com/SemanticAccessAndRetrieval/Elas4RDF-index). 
-System's response contains a ranked list of both a) triples and b) entities. Requires Java 8 (or later) and a running Elasticsearch instance.
+System's response contains a ranked list of both a) triples and b) entities. 
+
+Requires Java 8 (or later) and a running Elasticsearch instance.
 
 ### Install
-Build project and package with `mvn package`. The generated .war file inside the `Elas4RDF-search/target` folder can be used for deploying the service in any server (e.g. apache-tomcat).
+Build project and package with `mvn package`. The generated .war file inside the `Elas4RDF-search/target` 
+folder can be used for deploying the service in any server (e.g. apache-tomcat).
+
+When deployed, application expects an `application.properties` file with options about the ES running instance: `elastic.address=[string]` & `elastic.port=[int]`. 
+If file is not found, options default to `localhost:9200`.
 ## Search service 
 
 Queries are expressed through the `GET /` method while requests accept either a high-level or a low-level syntax. URL parameters include:
