@@ -15,7 +15,7 @@ import java.util.Map;
 
 
 /**
- * Models a request of type "triples"
+ * Models a GET request of type "triples"
  */
 public class Triples {
 
@@ -29,7 +29,7 @@ public class Triples {
      *
      * @param hits : Elasticsearch HighLevel answer
      */
-    public Triples(SearchHits hits) {
+    public Triples(SearchHits hits, List<String> indexFieldsList) {
         results = new ArrayList<>();
 
         int numHit = 0;
@@ -53,17 +53,24 @@ public class Triples {
             Map<String, String> obj_ext = new HashMap<>();
 
             /* add  all 'extended' fields */
-            for (String ext_field : Controller.indexFieldsList) {
+            for (String ext_field : indexFieldsList) {
 
 
                 if (sourceMap.containsKey(ext_field)) {
 
+                    StringBuilder ext_field_b = new StringBuilder(ext_field);
                     if (ext_field.endsWith("_sub")) {
-                        sub_ext.put(ext_field, sourceMap.get(ext_field).toString());
+                        int end = ext_field.lastIndexOf("_sub");
+                        ext_field_b.replace(end, end + 4, "");
+                        sub_ext.put(ext_field_b.toString(), sourceMap.get(ext_field).toString());
                     } else if (ext_field.endsWith("_pre")) {
-                        pre_ext.put(ext_field, sourceMap.get(ext_field).toString());
+                        int end = ext_field.lastIndexOf("_pre");
+                        ext_field_b.replace(end, end + 4, "");
+                        pre_ext.put(ext_field_b.toString(), sourceMap.get(ext_field).toString());
                     } else if (ext_field.endsWith("_obj")) {
-                        obj_ext.put(ext_field, sourceMap.get(ext_field).toString());
+                        int end = ext_field.lastIndexOf("_obj");
+                        ext_field_b.replace(end, end + 4, "");
+                        obj_ext.put(ext_field_b.toString(), sourceMap.get(ext_field).toString());
                     }
 
                 }
@@ -109,18 +116,25 @@ public class Triples {
                 }
 
                 /* add  all 'extended' fields */
-                for (String ext_field : Controller.indexFieldsList) {
+                for (String ext_field : indexFieldsList) {
 
                     if (highlightMap.containsKey(ext_field)) {
 
+                        StringBuilder ext_field_b = new StringBuilder(ext_field);
                         if (ext_field.endsWith("_sub")) {
-                            sub_ext.put(ext_field, highlightMap.get(ext_field).fragments()[0].string());
+                            int end = ext_field.lastIndexOf("_sub");
+                            ext_field_b.replace(end, end + 4, "");
+                            sub_ext.put(ext_field_b.toString(), highlightMap.get(ext_field).fragments()[0].string());
                             result.put("sub_ext", sub_ext);
                         } else if (ext_field.endsWith("_pre")) {
-                            pre_ext.put(ext_field, highlightMap.get(ext_field).fragments()[0].string());
+                            int end = ext_field.lastIndexOf("_pre");
+                            ext_field_b.replace(end, end + 4, "");
+                            pre_ext.put(ext_field_b.toString(), highlightMap.get(ext_field).fragments()[0].string());
                             result.put("pre_ext", pre_ext);
                         } else if (ext_field.endsWith("_obj")) {
-                            obj_ext.put(ext_field, highlightMap.get(ext_field).fragments()[0].string());
+                            int end = ext_field.lastIndexOf("_obj");
+                            ext_field_b.replace(end, end + 4, "");
+                            obj_ext.put(ext_field_b.toString(), highlightMap.get(ext_field).fragments()[0].string());
                             result.put("obj_ext", obj_ext);
                         }
 
@@ -146,7 +160,7 @@ public class Triples {
      *
      * @param jsonBody : Elasticsearch LowLevel answer
      */
-    public Triples(String jsonBody) {
+    public Triples(String jsonBody, List<String> indexFieldsList) {
 
         results = new ArrayList<>();
         int numHit = 0;
@@ -186,16 +200,23 @@ public class Triples {
                 }
 
                 /* add  all 'extended' fields */
-                for (String ext_field : Controller.indexFieldsList) {
+                for (String ext_field : indexFieldsList) {
 
                     if (hit_src.get(ext_field) != null) {
 
+                        StringBuilder ext_field_b = new StringBuilder(ext_field);
                         if (ext_field.endsWith("_sub")) {
-                            sub_ext.put(ext_field, hit_src.get(ext_field).toString());
+                            int end = ext_field.lastIndexOf("_sub");
+                            ext_field_b.replace(end, end + 4, "");
+                            sub_ext.put(ext_field_b.toString(), hit_src.get(ext_field).toString());
                         } else if (ext_field.endsWith("_pre")) {
-                            pre_ext.put(ext_field, hit_src.get(ext_field).toString());
+                            int end = ext_field.lastIndexOf("_pre");
+                            ext_field_b.replace(end, end + 4, "");
+                            pre_ext.put(ext_field_b.toString(), hit_src.get(ext_field).toString());
                         } else if (ext_field.endsWith("_obj")) {
-                            obj_ext.put(ext_field, hit_src.get(ext_field).toString());
+                            int end = ext_field.lastIndexOf("_obj");
+                            ext_field_b.replace(end, end + 4, "");
+                            obj_ext.put(ext_field_b.toString(), hit_src.get(ext_field).toString());
                         }
 
                     }

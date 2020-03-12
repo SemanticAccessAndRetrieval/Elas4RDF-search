@@ -7,7 +7,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Models a request of type "entities"
+ * Models a GET request of type "entities"
  */
 public class Entities {
 
@@ -17,16 +17,17 @@ public class Entities {
 
     private double max_score = 0;
 
-    public Entities(String query, List<Map<String, Object>> triplesRes) {
+    public Entities(String query, List<Map<String, Object>> triplesRes, String index) {
 
         /* store analyzed (e.g. stemming) query keywords */
-        analyzedQueryTokens = Controller.elasticControl.analyze("subjectKeywords", query);
+        analyzedQueryTokens = Controller.elasticControl.analyze("subjectKeywords", query, index);
 
         System.out.println("#### entities ####");
+        System.out.println("index: " + index);
         System.out.println("aggregation-penalty: " + Controller.aggregationPenalty);
         System.out.println("query: " + query);
 
-        createEntities(triplesRes);
+        createEntities(triplesRes, index);
 
     }
 
@@ -36,7 +37,7 @@ public class Entities {
      *
      * @param triplesRes : ranked list of triplesRes
      */
-    private void createEntities(List<Map<String, Object>> triplesRes) {
+    private void createEntities(List<Map<String, Object>> triplesRes, String index) {
 
         Map<String, Double> entitiesGain = new HashMap<>();
         Map<String, Object> entitiesExt = new HashMap<>();
@@ -69,7 +70,7 @@ public class Entities {
             /* Store entities based on subject OR/AND object */
             if (Controller.isResource(subject)) {
                 /* apply aggregation penalty */
-                double local_norm = norm_score * calculateAggregationPenalty("subjectKeywords", sub_keys);
+                double local_norm = norm_score * calculateAggregationPenalty("subjectKeywords", sub_keys, index);
 
                 /* calculate the 'ndcg-like, log-based' gain */
                 double localGain = (Math.pow(2, local_norm) - 1) / (Math.log(i + 1) / Math.log(2));
@@ -80,7 +81,7 @@ public class Entities {
 
             if (Controller.isResource(object)) {
                 /* apply aggregation penalty */
-                double local_norm = norm_score * calculateAggregationPenalty("objectKeywords", obj_keys);
+                double local_norm = norm_score * calculateAggregationPenalty("objectKeywords", obj_keys, index);
 
                 /* calculate the 'ndcg-like, log-based' gain */
                 double localGain = (Math.pow(2, local_norm) - 1) / (Math.log(i + 1) / Math.log(2));
@@ -137,13 +138,13 @@ public class Entities {
      * @param keywords : of the URI
      * @return penalty
      */
-    private double calculateAggregationPenalty(String field, String keywords) {
+    private double calculateAggregationPenalty(String field, String keywords, String index) {
 
         if (!Controller.aggregationPenalty) {
             return 1;
         }
 
-        Set<String> analyzedKeywords = Controller.elasticControl.analyze(field, keywords);
+        Set<String> analyzedKeywords = Controller.elasticControl.analyze(field, keywords, index);
         analyzedKeywords.retainAll(analyzedQueryTokens);
 
         /*  t : number of common terms between URI keywords & query

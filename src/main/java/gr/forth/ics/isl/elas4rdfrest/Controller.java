@@ -7,10 +7,13 @@ import java.util.stream.Stream;
 
 import gr.forth.ics.isl.elas4rdfrest.Elasticsearch.ElasticController;
 import gr.forth.ics.isl.elas4rdfrest.Model.Entities;
+import gr.forth.ics.isl.elas4rdfrest.Model.IndexProfile;
 import gr.forth.ics.isl.elas4rdfrest.Model.Response;
 import gr.forth.ics.isl.elas4rdfrest.Model.Triples;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.search.SearchHits;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.web.servlet.error.ErrorController;
@@ -26,18 +29,16 @@ import javax.servlet.http.HttpServletRequest;
 public class Controller implements ErrorController {
 
 
-    public static String INDEX = "";
-    public static Map<String, Float> indexFieldsMap;
-    public static List<String> indexFieldsList;
+    public static Map<String, IndexProfile> indexProfilesMap;
 
-    public static int LIMIT_RESULTS = 20;
+    public static int LIMIT_RESULTS = 100;
     public static boolean highlightResults = false;
     public static boolean aggregationPenalty = true;
     public static TimeValue elasticTook;
     public static ElasticController elasticControl;
 
-    private static final Set<String> KNOWN_NAME_SPACES
-            = Stream.of("http://dbpedia.org/resource").collect(Collectors.toCollection(HashSet::new));
+    private static Set<String> KNOWN_NAME_SPACES
+            = Stream.of("http://dbpedia.org/resource", "http://data.gesis.org/claimskg").collect(Collectors.toCollection(HashSet::new));
 
     @Autowired
     private Environment environment;
@@ -49,29 +50,7 @@ public class Controller implements ErrorController {
     @EventListener(ApplicationReadyEvent.class)
     public void initialize() {
 
-        /* store index information */
-        if (environment.containsProperty("index.name")) {
-            INDEX = environment.getProperty("index.name");
-        } else {
-            INDEX = "bindex";
-        }
-
-        if (environment.containsProperty("index.fields")) {
-            indexFieldsMap = new HashMap<>();
-            indexFieldsList = new ArrayList<>(0);
-            for (String field_entry : environment.getProperty("index.fields").split(";")) {
-                String field = field_entry.split("^")[0];
-                Float boost = 1f;
-                indexFieldsMap.put(field, boost);
-                indexFieldsList.add(field);
-            }
-
-        } else {
-            indexFieldsMap = new HashMap<>();
-            indexFieldsList = new ArrayList<>();
-        }
-
-        /* initialize Elasticsearch */
+        /* initialize Elasticsearch from application.properties file */
         if (environment.containsProperty("elastic.address")) {
             ElasticController.setHost(environment.getProperty("elastic.address"));
         } else {
@@ -88,39 +67,97 @@ public class Controller implements ErrorController {
             ElasticController.setPort(9200);
         }
 
+        indexProfilesMap = new HashMap<>();
         elasticControl = new ElasticController();
 
         System.out.println("^^^^^ Elas4RDF: initialization completed ^^^^^");
-        System.out.println("index.name: " + INDEX);
-        System.out.println("index.fields: " + indexFieldsMap);
         System.out.println("elastic.address: " + elasticControl.getHost());
         System.out.println("elastic.port: " + elasticControl.getPort());
         System.out.println("^^^^^^^^^^^^");
 
     }
 
+    /**
+     * Handles index-initialize POST request
+     *
+     * @param jsonBody : input (-d) body
+     * @return response : JSON-formatted
+     */
+    @PostMapping(value = "/initializeIndex", consumes = "application/json", produces = "application/json")
+    public Response initializeIndex(@RequestBody String jsonBody) {
+
+        Response response;
+        IndexProfile indexProfile;
+
+        /* read POST request*/
+        try {
+
+            JSONParser parser = new JSONParser();
+            JSONObject initObj = (JSONObject) parser.parse(jsonBody);
+
+            /* parse id, index.name & index.fields */
+            String id = (String) initObj.get("id");
+            String index = (String) initObj.get("index.name");
+            JSONObject indexFields = (JSONObject) initObj.get("index.fields");
+            String resourceUri = (String) initObj.get("resource_uri");
+            Map<String, Float> indexFieldsMap = new HashMap<>();
+
+            for (Object field : indexFields.keySet()) {
+                Float boost = Float.parseFloat(indexFields.get(field).toString());
+                indexFieldsMap.put((String) field, boost);
+            }
+
+            if (id == null) {
+                return new Response("In POST request '/initializeIndex': id is empty");
+            }
+            if (index == null) {
+                return new Response("In POST request '/initializeIndex': index.name is empty");
+            }
+            if (indexFields == null) {
+                return new Response("In POST request '/initializeIndex': index.fields is empty");
+            }
+
+            if (resourceUri != null) {
+                this.KNOWN_NAME_SPACES.add(resourceUri);
+            }
+
+            /* prepare a confirmation (IndexProfile) response */
+            indexProfile = new IndexProfile(id, index, indexFieldsMap);
+            this.indexProfilesMap.put(id, indexProfile);
+
+            response = new Response("initialization_results", indexProfile.getResponse());
+
+
+        } catch (Exception e) {
+            response = new Response("In POST request '/initializeIndex': " + e.getMessage());
+        }
+
+        return response;
+
+    }
 
     /**
+     * Handles general GET requests
+     *
      * @param query : input query
+     * @param id    : input id - correspond to unique IndexProfile
      * @param size  : input size (default = 10)
-     * @param index : input index
      * @param field : input fields (e.g. subjectKeywords .. -> default: allKeywords)
-     * @param body  : use instead of parameters (low-level request)
      * @return
      * @throws IOException
      */
     @GetMapping("/")
-    public Response response(
-            @RequestParam(value = "query", defaultValue = "") String query,
-            @RequestParam(value = "index", defaultValue = "") String index,
+    public Response highLevelResponse(
+            @RequestParam(value = "query") String query,
+            @RequestParam(value = "id") String id,
             @RequestParam(value = "size", defaultValue = "100") String size,
             @RequestParam(value = "field", defaultValue = "allKeywords") String field,
             @RequestParam(value = "type", defaultValue = "both") String type,
             @RequestParam(value = "highlightResults", defaultValue = "false") String highlightResults,
-            @RequestParam(value = "aggregationPenalty", defaultValue = "true") String aggregationPenalty,
-            @RequestBody(required = false) String body
-
+            @RequestParam(value = "aggregationPenalty", defaultValue = "true") String aggregationPenalty
     ) throws IOException {
+
+        IndexProfile indexProfile;
 
         /* parse Request Params */
         try {
@@ -130,18 +167,22 @@ public class Controller implements ErrorController {
             Controller.LIMIT_RESULTS = 10;
         }
 
-        if (!index.isEmpty()) {
-            Controller.INDEX = index;
-        }
-
         if (highlightResults.equals("true")) {
             Controller.highlightResults = true;
+        } else if (highlightResults.equals("false")) {
+            Controller.highlightResults = false;
         }
 
         if (aggregationPenalty.equals("false")) {
             Controller.aggregationPenalty = false;
         } else if (aggregationPenalty.equals("true")) {
             Controller.aggregationPenalty = true;
+        }
+
+        if (indexProfilesMap.containsKey(id)) {
+            indexProfile = indexProfilesMap.get(id);
+        } else {
+            return new Response(" requested id '" + id + "' does not exist. Perform a POST '/initializeIndex' request first.");
         }
 
         /* Serve response based on the Request Param 'type' */
@@ -151,17 +192,90 @@ public class Controller implements ErrorController {
 
         switch (type) {
             case "triples":
-                triples = getTriples(query, body, index, field);
+                triples = getTriples(query, "", indexProfile.getIndex_name(), field, indexProfile.getIndex_fields_list(), indexProfile.getIndex_fields_map());
                 response = new Response(triples);
                 break;
             case "entities":
-                triples = getTriples(query, body, index, field);
-                entities = getEntities(query, triples);
+                triples = getTriples(query, "", indexProfile.getIndex_name(), field, indexProfile.getIndex_fields_list(), indexProfile.getIndex_fields_map());
+                entities = getEntities(query, triples, indexProfile.getIndex_name());
                 response = new Response(entities);
                 break;
             case "both":
-                triples = getTriples(query, body, index, field);
-                entities = getEntities(query, triples);
+                triples = getTriples(query, "", indexProfile.getIndex_name(), field, indexProfile.getIndex_fields_list(), indexProfile.getIndex_fields_map());
+                entities = getEntities(query, triples, indexProfile.getIndex_name());
+                response = new Response(triples, entities);
+                break;
+            default:
+                response = new Response("Error, unrecognized type : " + type);
+                break;
+        }
+
+        return response;
+
+    }
+
+    /**
+     * @param id : unique id of dataset
+     * @return a Response containing all
+     * properties: 'id', 'index', 'fields'
+     */
+    @GetMapping("/get_properties")
+    public Response getProperties(@RequestParam(value = "id") String id) {
+
+        IndexProfile indexProfile;
+
+        if (indexProfilesMap.containsKey(id)) {
+            indexProfile = indexProfilesMap.get(id);
+        } else {
+            return new Response(" requested id '" + id + "' does not exist. Perform a POST '/initializeIndex' request first.");
+        }
+
+
+        Map<String, Object> propertiesMap = new HashMap<>();
+        propertiesMap.put("id", id);
+        propertiesMap.put("index", indexProfile.getIndex_name());
+        propertiesMap.put("fields", indexProfile.getIndex_fields_map());
+
+        return new Response(id + "_properties", propertiesMap);
+
+    }
+
+    @GetMapping("/low_level")
+    public Response lowLevelResponse(
+            @RequestBody() String body,
+            @RequestParam(value = "index") String index,
+            @RequestParam(value = "type", defaultValue = "both") String type,
+            @RequestParam(value = "size", defaultValue = "100") String size
+    ) throws IOException {
+
+        Response response;
+        Triples triples;
+        Entities entities;
+
+        try {
+            Controller.LIMIT_RESULTS = Integer.parseInt(size);
+        } catch (NumberFormatException e) {
+            Controller.LIMIT_RESULTS = 100;
+        }
+
+        //TODO, remove hard-coded id
+        String id = "dbpedia";
+        IndexProfile indexProfile = indexProfilesMap.get(id);
+        //
+
+        switch (type) {
+            case "triples":
+                triples = getTriples("", body, index, "", indexProfile.getIndex_fields_list(), null);
+                response = new Response(triples);
+                break;
+            case "entities":
+                triples = getTriples("", body, index, "", indexProfile.getIndex_fields_list(), null);
+                entities = getEntities("", triples, index);
+                response = new Response(entities);
+                break;
+            case "both":
+                triples = getTriples("", body, index, "", indexProfile.getIndex_fields_list(), null);
+                entities = getEntities("", triples, index);
                 response = new Response(triples, entities);
                 break;
             default:
@@ -223,22 +337,23 @@ public class Controller implements ErrorController {
 
     }
 
-    public Triples getTriples(String query, String body, String index, String field) throws IOException {
+    public Triples getTriples(String query, String body, String index, String
+            field, List<String> indexFieldsList, Map<String, Float> indexFieldsMap) throws IOException {
 
         /* low-level client -> use param 'body' */
         if (query.isEmpty()) {
-            String elResponse = elasticControl.restLow(body);
-            return new Triples(elResponse);
+            String elResponse = elasticControl.restLow(body, index);
+            return new Triples(elResponse, indexFieldsList);
         }
         /* high-level client -> use param 'query' */
         else {
-            SearchHits elHits = elasticControl.restHigh(index, field, query);
-            return new Triples(elHits);
+            SearchHits elHits = elasticControl.restHigh(index, field, query, indexFieldsMap);
+            return new Triples(elHits, indexFieldsList);
         }
     }
 
-    public Entities getEntities(String query, Triples triples) {
-        return new Entities(query, triples.getResults());
+    public Entities getEntities(String query, Triples triples, String index) {
+        return new Entities(query, triples.getResults(), index);
     }
 
     public static boolean isResource(String fullUri) {

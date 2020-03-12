@@ -1,0 +1,13 @@
+{
+  "id": "dbpedia",
+  "index.name": "terms_eindex",
+  "index.fields": {
+    "subjectKeywords" : 1,
+    "predicateKeywords" : 1,
+    "objectKeywords" : 2,
+    "rdfs_comment_sub" : 1,
+    "rdfs_comment_pre" : 1,
+    "rdfs_comment_obj" : 1
+  },
+  "resource_uri" : ""
+}

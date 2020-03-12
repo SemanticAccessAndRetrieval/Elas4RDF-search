@@ -15,10 +15,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.*;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.index.query.*;
@@ -83,10 +80,10 @@ public class ElasticController {
      * @return
      * @throws IOException
      */
-    public SearchHits restHigh(String index, String field, String keywords) throws IOException {
+    public SearchHits restHigh(String index, String field, String keywords, Map<String, Float> fieldsMap) throws IOException {
 
         /* Initializing a search request and a search source builder */
-        SearchRequest searchRequest = new SearchRequest(Controller.INDEX);
+        SearchRequest searchRequest = new SearchRequest(index);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
         /* Highlight for source builder */
@@ -106,23 +103,16 @@ public class ElasticController {
                 QueryBuilder allQueryBuilder = QueryBuilders
                         .multiMatchQuery(keywords)
                         .type(MultiMatchQueryBuilder.Type.CROSS_FIELDS)
-                        .field("subjectKeywords")
-                        .field("predicateKeywords")
-                        .field("objectKeywords", 2f)
-                        .fields(Controller.indexFieldsMap)
+                        .fields(fieldsMap)
                         .tieBreaker(0.1f);
 
                 searchSourceBuilder.query(allQueryBuilder);
 
                 /* Highlight specific field(s) */
                 if (Controller.highlightResults) {
-                    highlightBuilder.field("subjectKeywords");
-                    highlightBuilder.field("predicateKeywords");
-                    highlightBuilder.field("objectKeywords");
-                    for (String local_field : Controller.indexFieldsList) {
+                    for (String local_field : fieldsMap.keySet()) {
                         highlightBuilder.field(local_field);
                     }
-
                     highlightBuilder.preTags("<strong>");
                     highlightBuilder.postTags("</strong>");
                 }
@@ -179,10 +169,10 @@ public class ElasticController {
      * @return
      * @throws IOException
      */
-    public String restLow(String body) throws IOException {
+    public String restLow(String body, String index) throws IOException {
 
         HttpEntity entity = new NStringEntity(body, ContentType.APPLICATION_JSON);
-        Request request = new Request("GET", "/" + Controller.INDEX + "/_search");
+        Request request = new Request("GET", "/" + index + "/_search");
         request.setEntity(entity);
         request.addParameter("pretty", "true");
         request.addParameter("size", Integer.toString(Controller.LIMIT_RESULTS));
@@ -198,11 +188,11 @@ public class ElasticController {
      * @param text  : input keywords
      * @return
      */
-    public Set<String> analyze(String field, String text) {
+    public Set<String> analyze(String field, String text, String index_name) {
 
         Set<String> analyzedKeywords = new HashSet<>();
         AnalyzeRequest request = new AnalyzeRequest();
-        request.index(Controller.INDEX);
+        request.index(index_name);
         request.field(field);
         request.text(text);
 
