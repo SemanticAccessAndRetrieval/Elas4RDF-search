@@ -35,6 +35,7 @@ public class Controller implements ErrorController {
     public static boolean highlightResults = false;
     public static boolean aggregationPenalty = true;
     public static TimeValue elasticTook;
+
     public static ElasticController elasticControl;
 
     private static Set<String> KNOWN_NAME_SPACES
@@ -83,7 +84,7 @@ public class Controller implements ErrorController {
      * @param jsonBody : input (-d) body
      * @return response : JSON-formatted
      */
-    @PostMapping(value = "/initializeIndex", consumes = "application/json", produces = "application/json")
+    @PostMapping(value = "/initialize_index", consumes = "application/json", produces = "application/json")
     public Response initializeIndex(@RequestBody String jsonBody) {
 
         Response response;
@@ -108,13 +109,13 @@ public class Controller implements ErrorController {
             }
 
             if (id == null) {
-                return new Response("In POST request '/initializeIndex': id is empty");
+                return new Response("In POST request '/initialize_index': id is empty");
             }
             if (index == null) {
-                return new Response("In POST request '/initializeIndex': index.name is empty");
+                return new Response("In POST request '/initialize_index': index.name is empty");
             }
             if (indexFields == null) {
-                return new Response("In POST request '/initializeIndex': index.fields is empty");
+                return new Response("In POST request '/initialize_index': index.fields is empty");
             }
 
             if (resourceUri != null) {
@@ -129,7 +130,7 @@ public class Controller implements ErrorController {
 
 
         } catch (Exception e) {
-            response = new Response("In POST request '/initializeIndex': " + e.getMessage());
+            response = new Response("In POST request '/initialize_index': " + e.getMessage());
         }
 
         return response;
@@ -164,7 +165,7 @@ public class Controller implements ErrorController {
             Controller.LIMIT_RESULTS = Integer.parseInt(size);
 
         } catch (NumberFormatException e) {
-            Controller.LIMIT_RESULTS = 10;
+            Controller.LIMIT_RESULTS = 100;
         }
 
         if (highlightResults.equals("true")) {
@@ -182,7 +183,7 @@ public class Controller implements ErrorController {
         if (indexProfilesMap.containsKey(id)) {
             indexProfile = indexProfilesMap.get(id);
         } else {
-            return new Response(" requested id '" + id + "' does not exist. Perform a POST '/initializeIndex' request first.");
+            return new Response(" requested id '" + id + "' does not exist. Perform a POST '/initialize_index' request first.");
         }
 
         /* Serve response based on the Request Param 'type' */
@@ -227,10 +228,11 @@ public class Controller implements ErrorController {
         if (indexProfilesMap.containsKey(id)) {
             indexProfile = indexProfilesMap.get(id);
         } else {
-            return new Response(" requested id '" + id + "' does not exist. Perform a POST '/initializeIndex' request first.");
+            return new Response(" requested id '" + id + "' does not exist. Perform a POST '/initialize_index' request first.");
         }
 
 
+        /* prepare & send Response */
         Map<String, Object> propertiesMap = new HashMap<>();
         propertiesMap.put("id", id);
         propertiesMap.put("index", indexProfile.getIndex_name());
@@ -240,6 +242,16 @@ public class Controller implements ErrorController {
 
     }
 
+    /**
+     * Handles Low-Level syntax requests.
+     *
+     * @param body  : JSON string containing query expressed in ES DSL
+     * @param index : index name
+     * @param type  : return type ('triples', 'entities', 'both')
+     * @param size  : size of the response (defaults 100)
+     * @return
+     * @throws IOException
+     */
     @GetMapping("/low_level")
     public Response lowLevelResponse(
             @RequestBody() String body,
@@ -290,7 +302,7 @@ public class Controller implements ErrorController {
     @RequestMapping(value = "/error")
     public String error(HttpServletRequest request) throws IOException {
         Object status = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
-        Object exception = "", exception_type = "";
+        Object exception = "";
         boolean param_error = false;
 
         /* Identify exception */
@@ -337,6 +349,10 @@ public class Controller implements ErrorController {
 
     }
 
+
+    /**
+     * Helper function
+     */
     public Triples getTriples(String query, String body, String index, String
             field, List<String> indexFieldsList, Map<String, Float> indexFieldsMap) throws IOException {
 
@@ -352,6 +368,9 @@ public class Controller implements ErrorController {
         }
     }
 
+    /**
+     * Helper function
+     */
     public Entities getEntities(String query, Triples triples, String index) {
         return new Entities(query, triples.getResults(), index);
     }
