@@ -1,8 +1,9 @@
 package gr.forth.ics.isl.elas4rdfrest.Model;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Array;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Packages and returns to Controller the Response of a request.
@@ -52,20 +53,33 @@ public class Response {
         this.results.put("total_entities", entities.getTotal_res());
     }
 
-    public Response(String error) {
+    public Response(Map<String, Object> errorMap) {
         this.results = new HashMap<>();
-        this.results.put("error", error);
+        this.results.put("error", errorMap);
     }
 
-    public static String getHelpMessage() {
-        return "<u>URL PARAMS</u>" +
-                "<br> <br>" +
-                "ΗIGH-LEVEL syntax params: <br> <br>" +
-                "&nbsp; &nbsp; &nbsp; required: <b>query</b> = [string] <b> id </b> = [string] <br>" +
-                "&nbsp; &nbsp; &nbsp; optional: <b>index</b>=[string] <b>size</b>=[int] <b>field</b>=[string] <b>type</b>=[string] <b>highlightResults</b>=[boolean]" +
-                "<br> <br>" +
-                "LOW-LEVEL syntax params: <br> <br> " +
-                "&nbsp; &nbsp; &nbsp; <b>body</b>=[json]";
+    public static Map<String, Object> getHelpMessage() {
+
+        Map<String, Object> helpMap = new LinkedHashMap<>();
+
+        /* url params map */
+        Map<String, Object> urlParamsMap = new LinkedHashMap<>();
+        Map<String, Object> highLevelMap = new LinkedHashMap<>();
+        Map<String, Object> lowLevelMap = new LinkedHashMap<>();
+
+        highLevelMap.put("required", Stream.of("query=[string]", "id=[string]").collect(Collectors.toCollection(LinkedHashSet::new)));
+        highLevelMap.put("optional", Stream.of("size=[int]", "type=[string]", "highlightResults=[boolean]").collect(Collectors.toCollection(LinkedHashSet::new)));
+
+        lowLevelMap.put("required", Stream.of("body=[string]", "index=[string]").collect(Collectors.toCollection(LinkedHashSet::new)));
+        lowLevelMap.put("optional", Stream.of("size=[int]", "type=[string]").collect(Collectors.toCollection(LinkedHashSet::new)));
+
+        urlParamsMap.put("High-Level syntax -> 'GET /'", highLevelMap);
+        urlParamsMap.put("Low-Level  syntax -> 'GET /low_level'", lowLevelMap);
+
+        helpMap.put("URL-Params", urlParamsMap);
+
+        return helpMap;
+
     }
 
     public Map<String, Object> getResults() {

@@ -11,7 +11,6 @@ import gr.forth.ics.isl.elas4rdfrest.Model.IndexProfile;
 import gr.forth.ics.isl.elas4rdfrest.Model.Response;
 import gr.forth.ics.isl.elas4rdfrest.Model.Triples;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.Index;
 import org.elasticsearch.search.SearchHits;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -80,7 +79,7 @@ public class Controller implements ErrorController {
     }
 
     /**
-     * Handles index-initialize POST request
+     * Handles '/index_initialize' POST request
      *
      * @param jsonBody : input (-d) body
      * @return response : JSON-formatted
@@ -105,12 +104,15 @@ public class Controller implements ErrorController {
             String resourceUri = (String) initObj.get("resource_uri");
             Map<String, Float> indexFieldsMap = new HashMap<>();
             Map<String, String> indexKeywordProps = new HashMap<>();
+            Map<String, Object> errorMap = new HashMap<>();
 
             if (id == null) {
-                return new Response("In POST request '/initialize_index': id is empty");
+                errorMap.put("initialize_index error", "In POST request '/initialize_index': id is empty");
+                return new Response(errorMap);
             }
             if (index == null) {
-                return new Response("In POST request '/initialize_index': index.name is empty");
+                errorMap.put("initialize_index error", "In POST request '/initialize_index': index.name is empty");
+                return new Response(errorMap);
             }
 
             /* store index-fields */
@@ -120,7 +122,8 @@ public class Controller implements ErrorController {
                     indexFieldsMap.put((String) field, boost);
                 }
             } else {
-                return new Response("In POST request '/initialize_index': index.fields is empty");
+                errorMap.put("initialize_index error", "In POST request '/initialize_index': index.fields is empty");
+                return new Response(errorMap);
             }
 
             /* store property for URI keywords (may not be specified) */
@@ -144,7 +147,10 @@ public class Controller implements ErrorController {
 
 
         } catch (Exception e) {
-            response = new Response("In POST request '/initialize_index': " + e.getMessage());
+            Map<String, Object> errorMap = new HashMap<>();
+            errorMap.put("initialize_index error", "Exception occured: " + e.getMessage());
+
+            response = new Response(errorMap);
         }
 
         return response;
@@ -173,6 +179,7 @@ public class Controller implements ErrorController {
     ) throws IOException {
 
         IndexProfile indexProfile;
+        Map<String, Object> errorMap = new HashMap<>();
 
         /* parse Request Params */
         try {
@@ -197,7 +204,8 @@ public class Controller implements ErrorController {
         if (indexProfilesMap.containsKey(id)) {
             indexProfile = indexProfilesMap.get(id);
         } else {
-            return new Response(" requested id '" + id + "' does not exist. Perform a POST '/initialize_index' request first.");
+            errorMap.put("GET /", "requested id '\" + id + \"' does not exist. Perform a POST '/initialize_index' request first.");
+            return new Response(errorMap);
         }
 
         /* Serve response based on the Request Param 'type' */
@@ -221,7 +229,8 @@ public class Controller implements ErrorController {
                 response = new Response(triples, entities);
                 break;
             default:
-                response = new Response("Error, unrecognized type : " + type);
+                errorMap.put("GET /", "Error, unrecognized type : " + type);
+                response = new Response(errorMap);
                 break;
         }
 
@@ -238,11 +247,13 @@ public class Controller implements ErrorController {
     public Response getProperties(@RequestParam(value = "id") String id) {
 
         IndexProfile indexProfile;
+        Map<String, Object> errorMap = new HashMap<>();
 
         if (indexProfilesMap.containsKey(id)) {
             indexProfile = indexProfilesMap.get(id);
         } else {
-            return new Response(" requested id '" + id + "' does not exist. Perform a POST '/initialize_index' request first.");
+            errorMap.put("GET /properties", " requested id '" + id + "' does not exist. Perform a POST '/initialize_index' request first.");
+            return new Response(errorMap);
         }
 
 
@@ -277,6 +288,7 @@ public class Controller implements ErrorController {
         Response response;
         Triples triples;
         Entities entities;
+        Map<String, Object> erroMap = new HashMap<>();
 
         try {
             Controller.LIMIT_RESULTS = Integer.parseInt(size);
@@ -305,7 +317,8 @@ public class Controller implements ErrorController {
                 response = new Response(triples, entities);
                 break;
             default:
-                response = new Response("Error, unrecognized type : " + type);
+                erroMap.put("GET /low_level", "Error, unrecognized type : " + type);
+                response = new Response(erroMap);
                 break;
         }
 
@@ -314,10 +327,12 @@ public class Controller implements ErrorController {
     }
 
     @RequestMapping(value = "/error")
-    public String error(HttpServletRequest request) throws IOException {
+    public Map<String, Object> error(HttpServletRequest request) throws IOException {
+        Map<String, Object> errorMap = new LinkedHashMap<>();
         Object status = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
         Object exception = "";
         boolean param_error = false;
+
 
         /* Identify exception */
         if (request.getAttribute(RequestDispatcher.ERROR_EXCEPTION) != null) {
@@ -334,27 +349,30 @@ public class Controller implements ErrorController {
             String error = "";
 
             if (statusCode == HttpStatus.NOT_FOUND.value()) {
-                return "Error 404 : NOT FOUND";
+                errorMap.put("Error", "Error 404 : Not Found");
+                return errorMap;
             } else if (statusCode == HttpStatus.INTERNAL_SERVER_ERROR.value()) {
-                error = "Server Error 505" + "<br>" + exception + "<br> <br> <br>";
+                errorMap.put("Error", "Server Error 505" + "" + exception);
 
                 /* Print help message for URL params */
                 if (param_error) {
-                    error += Response.getHelpMessage();
+                    errorMap.put("Help", Response.getHelpMessage());
                 }
 
-                return error;
+                return errorMap;
 
             } else if (statusCode == HttpStatus.BAD_REQUEST.value()) {
-                error = "Error 400 : BAD REQUEST <br> <br> <br>" +
-                        Response.getHelpMessage();
+                ;
+                errorMap.put("Error", "400 : Bad Request");
+                errorMap.put("Help", Response.getHelpMessage());
 
-                return error;
+                return errorMap;
 
             }
 
         }
-        return "error" + status;
+        errorMap.put("Error", "An undefined exception has occured");
+        return errorMap;
     }
 
     @Override
