@@ -29,7 +29,7 @@ public class Triples {
      *
      * @param hits : Elasticsearch HighLevel answer
      */
-    public Triples(SearchHits hits, List<String> indexFieldsList) {
+    public Triples(SearchHits hits, List<String> indexFieldsList, Map<String, String> indexKeywordsProperties) {
         results = new ArrayList<>();
 
         int numHit = 0;
@@ -51,6 +51,21 @@ public class Triples {
             Map<String, String> sub_ext = new HashMap<>();
             Map<String, String> pre_ext = new HashMap<>();
             Map<String, String> obj_ext = new HashMap<>();
+
+            String subjectKeywordsField = "subjectKeywords";
+            String predicateKeywordsField = "predicateKeywords";
+            String objectKeywordsField = "objectKeywords";
+
+            /* if a property must replace URI keywords */
+            if (indexKeywordsProperties.containsKey("subjectKeywords")) {
+                subjectKeywordsField = indexKeywordsProperties.get("subjectKeywords");
+            }
+            if (indexKeywordsProperties.containsKey("predicateKeywords")) {
+                predicateKeywordsField = indexKeywordsProperties.get("predicateKeywords");
+            }
+            if (indexKeywordsProperties.containsKey("objectKeywords")) {
+                objectKeywordsField = indexKeywordsProperties.get("objectKeywords");
+            }
 
             /* add  all 'extended' fields */
             for (String ext_field : indexFieldsList) {
@@ -95,9 +110,22 @@ public class Triples {
             result.put("pre", sourceMap.get("predicateNspaceKeys").toString() + "/" + sourceMap.get("predicateKeywords"));
             result.put("obj", obj);
 
-            result.put("sub_keywords", sourceMap.get("subjectKeywords").toString());
-            result.put("pre_keywords", sourceMap.get("predicateKeywords").toString());
-            result.put("obj_keywords", sourceMap.get("objectKeywords").toString());
+            /* handle keywords */
+            if (sourceMap.containsKey(subjectKeywordsField)) {
+                result.put("sub_keywords", sourceMap.get(subjectKeywordsField).toString());
+            } else {
+                result.put("sub_keywords", sourceMap.get("subjectKeywords").toString());
+            }
+            if (sourceMap.containsKey(predicateKeywordsField)) {
+                result.put("pre_keywords", sourceMap.get(predicateKeywordsField).toString());
+            } else {
+                result.put("pre_keywords", sourceMap.get("predicateKeywords").toString());
+            }
+            if (sourceMap.containsKey(objectKeywordsField)) {
+                result.put("obj_keywords", sourceMap.get(objectKeywordsField).toString());
+            } else {
+                result.put("obj_keywords", sourceMap.get("objectKeywords").toString());
+            }
 
             result.put("sub_ext", sub_ext);
             result.put("pre_ext", pre_ext);
@@ -105,14 +133,14 @@ public class Triples {
 
             /* include highlighted fields (replace existing) */
             if (Controller.highlightResults) {
-                if (highlightMap.containsKey("subjectKeywords")) {
-                    result.put("sub_keywords", highlightMap.get("subjectKeywords").fragments()[0].string());
+                if (highlightMap.containsKey(subjectKeywordsField)) {
+                    result.put("sub_keywords", highlightMap.get(subjectKeywordsField).fragments()[0].string());
                 }
-                if (highlightMap.containsKey("predicateKeywords")) {
-                    result.put("pre_keywords", highlightMap.get("predicateKeywords").fragments()[0].string());
+                if (highlightMap.containsKey(predicateKeywordsField)) {
+                    result.put("pre_keywords", highlightMap.get(predicateKeywordsField).fragments()[0].string());
                 }
-                if (highlightMap.containsKey("objectKeywords")) {
-                    result.put("obj_keywords", highlightMap.get("objectKeywords").fragments()[0].string());
+                if (highlightMap.containsKey(objectKeywordsField)) {
+                    result.put("obj_keywords", highlightMap.get(objectKeywordsField).fragments()[0].string());
                 }
 
                 /* add  all 'extended' fields */
@@ -160,7 +188,7 @@ public class Triples {
      *
      * @param jsonBody : Elasticsearch LowLevel answer
      */
-    public Triples(String jsonBody, List<String> indexFieldsList) {
+    public Triples(String jsonBody, List<String> indexFieldsList, Map<String, String> indexKeywordsProperties) {
 
         results = new ArrayList<>();
         int numHit = 0;
@@ -184,6 +212,22 @@ public class Triples {
                 Map<String, String> sub_ext = new HashMap<>();
                 Map<String, String> pre_ext = new HashMap<>();
                 Map<String, String> obj_ext = new HashMap<>();
+
+                String subjectKeywordsField = "subjectKeywords";
+                String predicateKeywordsField = "predicateKeywords";
+                String objectKeywordsField = "objectKeywords";
+
+                /* if a property must replace URI keywords */
+                if (indexKeywordsProperties.containsKey("subjectKeywords")) {
+                    subjectKeywordsField = indexKeywordsProperties.get("subjectKeywords");
+                }
+                if (indexKeywordsProperties.containsKey("predicateKeywords")) {
+                    predicateKeywordsField = indexKeywordsProperties.get("predicateKeywords");
+                }
+                if (indexKeywordsProperties.containsKey("objectKeywords")) {
+                    objectKeywordsField = indexKeywordsProperties.get("objectKeywords");
+                }
+
 
                 if (hit_src.get("objectNspaceKeys").getAsString().equals("")) {
                     literal = true;
@@ -228,9 +272,9 @@ public class Triples {
                 result.put("pre", hit_src.get("predicateNspaceKeys").getAsString() + "/" + hit_src.get("predicateKeywords").getAsString());
                 result.put("obj", obj);
 
-                result.put("sub_keywords", hit_src.get("subjectKeywords").getAsString());
-                result.put("pre_keywords", hit_src.get("predicateKeywords").getAsString());
-                result.put("obj_keywords", hit_src.get("objectKeywords").getAsString());
+                result.put("sub_keywords", hit_src.get(subjectKeywordsField).getAsString());
+                result.put("pre_keywords", hit_src.get(predicateKeywordsField).getAsString());
+                result.put("obj_keywords", hit_src.get(objectKeywordsField).getAsString());
 
                 result.put("sub_ext", sub_ext);
                 result.put("pre_ext", pre_ext);

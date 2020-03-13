@@ -15,10 +15,11 @@ public class IndexProfile {
     private String index_name;
     private Map<String, Float> index_fields_map;
     private List<String> index_fields_list;
+    private Map<String, String> index_keywords_properties;
 
     private Map<String, Object> response;
 
-    public IndexProfile(String id, String index_name, Map<String, Float> index_fields_map) {
+    public IndexProfile(String id, String index_name, Map<String, Float> index_fields_map, Map<String, String> index_keywords_properties) {
 
         response = new HashMap<>();
 
@@ -27,6 +28,7 @@ public class IndexProfile {
         this.index_fields_map = index_fields_map;
         this.index_fields_list = new ArrayList<>();
         this.index_fields_list.addAll(index_fields_map.keySet());
+        this.index_keywords_properties = index_keywords_properties;
 
         response.put("result", "success");
         response.put("id", id);
@@ -45,6 +47,10 @@ public class IndexProfile {
 
     public List<String> getIndex_fields_list() {
         return index_fields_list;
+    }
+
+    public Map<String, String> getKeywords_properties() {
+        return index_keywords_properties;
     }
 
     public Map<String, Object> getResponse() {

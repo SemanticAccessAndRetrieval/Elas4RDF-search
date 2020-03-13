@@ -11,6 +11,7 @@ import gr.forth.ics.isl.elas4rdfrest.Model.IndexProfile;
 import gr.forth.ics.isl.elas4rdfrest.Model.Response;
 import gr.forth.ics.isl.elas4rdfrest.Model.Triples;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.search.SearchHits;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -100,13 +101,10 @@ public class Controller implements ErrorController {
             String id = (String) initObj.get("id");
             String index = (String) initObj.get("index.name");
             JSONObject indexFields = (JSONObject) initObj.get("index.fields");
+            JSONObject keywordsProperties = (JSONObject) initObj.get("index.keywords");
             String resourceUri = (String) initObj.get("resource_uri");
             Map<String, Float> indexFieldsMap = new HashMap<>();
-
-            for (Object field : indexFields.keySet()) {
-                Float boost = Float.parseFloat(indexFields.get(field).toString());
-                indexFieldsMap.put((String) field, boost);
-            }
+            Map<String, String> indexKeywordProps = new HashMap<>();
 
             if (id == null) {
                 return new Response("In POST request '/initialize_index': id is empty");
@@ -114,8 +112,24 @@ public class Controller implements ErrorController {
             if (index == null) {
                 return new Response("In POST request '/initialize_index': index.name is empty");
             }
-            if (indexFields == null) {
+
+            /* store index-fields */
+            if (indexFields != null) {
+                for (Object field : indexFields.keySet()) {
+                    Float boost = Float.parseFloat(indexFields.get(field).toString());
+                    indexFieldsMap.put((String) field, boost);
+                }
+            } else {
                 return new Response("In POST request '/initialize_index': index.fields is empty");
+            }
+
+            /* store property for URI keywords (may not be specified) */
+            if (keywordsProperties != null) {
+
+                for (Object keyword_property : keywordsProperties.keySet()) {
+                    indexKeywordProps.put(keyword_property.toString(), keywordsProperties.get(keyword_property).toString());
+                }
+
             }
 
             if (resourceUri != null) {
@@ -123,7 +137,7 @@ public class Controller implements ErrorController {
             }
 
             /* prepare a confirmation (IndexProfile) response */
-            indexProfile = new IndexProfile(id, index, indexFieldsMap);
+            indexProfile = new IndexProfile(id, index, indexFieldsMap, indexKeywordProps);
             this.indexProfilesMap.put(id, indexProfile);
 
             response = new Response("initialization_results", indexProfile.getResponse());
@@ -142,7 +156,7 @@ public class Controller implements ErrorController {
      *
      * @param query : input query
      * @param id    : input id - correspond to unique IndexProfile
-     * @param size  : input size (default = 10)
+     * @param size  : input size (defaults 100)
      * @param field : input fields (e.g. subjectKeywords .. -> default: allKeywords)
      * @return
      * @throws IOException
@@ -193,16 +207,16 @@ public class Controller implements ErrorController {
 
         switch (type) {
             case "triples":
-                triples = getTriples(query, "", indexProfile.getIndex_name(), field, indexProfile.getIndex_fields_list(), indexProfile.getIndex_fields_map());
+                triples = getTriples(query, "", indexProfile);
                 response = new Response(triples);
                 break;
             case "entities":
-                triples = getTriples(query, "", indexProfile.getIndex_name(), field, indexProfile.getIndex_fields_list(), indexProfile.getIndex_fields_map());
+                triples = getTriples(query, "", indexProfile);
                 entities = getEntities(query, triples, indexProfile.getIndex_name());
                 response = new Response(entities);
                 break;
             case "both":
-                triples = getTriples(query, "", indexProfile.getIndex_name(), field, indexProfile.getIndex_fields_list(), indexProfile.getIndex_fields_map());
+                triples = getTriples(query, "", indexProfile);
                 entities = getEntities(query, triples, indexProfile.getIndex_name());
                 response = new Response(triples, entities);
                 break;
@@ -277,16 +291,16 @@ public class Controller implements ErrorController {
 
         switch (type) {
             case "triples":
-                triples = getTriples("", body, index, "", indexProfile.getIndex_fields_list(), null);
+                triples = getTriples("", body, indexProfile);
                 response = new Response(triples);
                 break;
             case "entities":
-                triples = getTriples("", body, index, "", indexProfile.getIndex_fields_list(), null);
+                triples = getTriples("", body, indexProfile);
                 entities = getEntities("", triples, index);
                 response = new Response(entities);
                 break;
             case "both":
-                triples = getTriples("", body, index, "", indexProfile.getIndex_fields_list(), null);
+                triples = getTriples("", body, indexProfile);
                 entities = getEntities("", triples, index);
                 response = new Response(triples, entities);
                 break;
@@ -353,18 +367,17 @@ public class Controller implements ErrorController {
     /**
      * Helper function
      */
-    public Triples getTriples(String query, String body, String index, String
-            field, List<String> indexFieldsList, Map<String, Float> indexFieldsMap) throws IOException {
+    public Triples getTriples(String query, String body, IndexProfile indexProfile) throws IOException {
 
         /* low-level client -> use param 'body' */
         if (query.isEmpty()) {
-            String elResponse = elasticControl.restLow(body, index);
-            return new Triples(elResponse, indexFieldsList);
+            String elResponse = elasticControl.restLow(body, indexProfile.getIndex_name());
+            return new Triples(elResponse, indexProfile.getIndex_fields_list(), indexProfile.getKeywords_properties());
         }
         /* high-level client -> use param 'query' */
         else {
-            SearchHits elHits = elasticControl.restHigh(index, field, query, indexFieldsMap);
-            return new Triples(elHits, indexFieldsList);
+            SearchHits elHits = elasticControl.restHigh(indexProfile.getIndex_name(), query, indexProfile.getIndex_fields_map());
+            return new Triples(elHits, indexProfile.getIndex_fields_list(), indexProfile.getKeywords_properties());
         }
     }
 

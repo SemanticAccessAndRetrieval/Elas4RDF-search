@@ -75,12 +75,11 @@ public class ElasticController {
      * the REST API.
      *
      * @param index    : name of Elasticsearch index
-     * @param field    : values include : "subjectKeywords", "objectKeywords", "allKeywords"
      * @param keywords : input query
      * @return
      * @throws IOException
      */
-    public SearchHits restHigh(String index, String field, String keywords, Map<String, Float> fieldsMap) throws IOException {
+    public SearchHits restHigh(String index, String keywords, Map<String, Float> fieldsMap) throws IOException {
 
         /* Initializing a search request and a search source builder */
         SearchRequest searchRequest = new SearchRequest(index);
@@ -89,63 +88,32 @@ public class ElasticController {
         /* Highlight for source builder */
         HighlightBuilder highlightBuilder = new HighlightBuilder();
 
-        switch (field) {
 
-            /* Case allKeywords a multi-match query must be build.*/
-            /* Different implementations for allKeywords
-             *   1st : multi match query builder and cross fields
-             *   2nd : single query with allKeywords field ( supports fuzziness)
-             *
-             */
-            case "allKeywords":
+        /* Case allKeywords a multi-match query must be build.*/
+        /* Different implementations for allKeywords
+         *   1st : multi match query builder and cross fields
+         *   2nd : single query with allKeywords field ( supports fuzziness)
+         *
+         */
 
-                /* Make query builder */
-                QueryBuilder allQueryBuilder = QueryBuilders
-                        .multiMatchQuery(keywords)
-                        .type(MultiMatchQueryBuilder.Type.CROSS_FIELDS)
-                        .fields(fieldsMap)
-                        .tieBreaker(0.1f);
+        /* Make query builder */
+        QueryBuilder allQueryBuilder = QueryBuilders
+                .multiMatchQuery(keywords)
+                .type(MultiMatchQueryBuilder.Type.CROSS_FIELDS)
+                .fields(fieldsMap)
+                .tieBreaker(0.1f);
 
-                searchSourceBuilder.query(allQueryBuilder);
+        searchSourceBuilder.query(allQueryBuilder);
 
-                /* Highlight specific field(s) */
-                if (Controller.highlightResults) {
-                    for (String local_field : fieldsMap.keySet()) {
-                        highlightBuilder.field(local_field);
-                    }
-                    highlightBuilder.preTags("<strong>");
-                    highlightBuilder.postTags("</strong>");
-                }
-
-                break;
-
-
-            /* Case "subjectKeywords", "predicateKeywords", "objectKeywords" a single-match query must be build.*/
-            default:
-
-                /* Specifying a query builder with different parameters for the search request */
-                //QueryStringQueryBuilder queryBuilder = new QueryStringQueryBuilder(field);
-                //MatchQueryBuilder defaultQueryBuilder = new MatchQueryBuilder(field, keywords)
-                //        .fuzziness(Fuzziness.AUTO)
-                //        .operator(Operator.OR);
-
-                /* Highlight specific field */
-                if (Controller.highlightResults) {
-                    highlightBuilder.field(field);
-                    highlightBuilder.preTags("<strong>");
-                    highlightBuilder.postTags("</strong>");
-                }
-
-                QueryBuilder qb = QueryBuilders
-                        .boolQuery()
-                        .must(QueryBuilders.multiMatchQuery(keywords, field));
-
-                /* Applying query builder to source buidler */
-                searchSourceBuilder.query(qb);
-
-                break;
-
+        /* Highlight specific field(s) */
+        if (Controller.highlightResults) {
+            for (String local_field : fieldsMap.keySet()) {
+                highlightBuilder.field(local_field);
+            }
+            highlightBuilder.preTags("<strong>");
+            highlightBuilder.postTags("</strong>");
         }
+
 
         /* Sort results based on score(descending) */
         searchSourceBuilder.sort(new ScoreSortBuilder().order(SortOrder.DESC));
