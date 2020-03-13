@@ -39,9 +39,9 @@ can be found in `/src/resources/examples/` folder.
 
 #### 2) Performing a Query
 
-Queries are expressed through the `GET /` method while requests accept either a high-level or a low-level syntax. URL parameters include:
+Queries are expressed through the `GET` method while requests accept either a high-level or a low-level syntax. URL parameters include:
 
-* ##### High-Level syntax
+* **High-Level syntax** -> `GET /`
 
    _required_ `id=[string]` `query=[string]`
    
@@ -54,11 +54,12 @@ Queries are expressed through the `GET /` method while requests accept either a 
     `type` corresponds to the answer return type: "triples", "entities" or "both" (default).
     
             
-* **Low-Level syntax**   
+* **Low-Level syntax** ->`GET /low-level`    
+    Through the  
 
     _required_ `body=[json]` `index[string]`
     
-    _optional_ `type=[string]` `type[string]`
+    _optional_ `size=[int]` `type[string]`
     
     `body` is used for expressing more complicated queries through the use of ES [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html).
     Parameter `index` correponds to the ES index name.
