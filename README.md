@@ -55,7 +55,6 @@ Queries are expressed through the `GET` method while requests accept either a hi
     
             
 * **Low-Level syntax** ->`GET /low-level`    
-    Through the  
 
     _required_ `body=[json]` `index[string]`
     
@@ -82,5 +81,5 @@ Queries are expressed through the `GET` method while requests accept either a hi
      
  Using the `curl` command a (high-level syntax) request can be expressed as:
  
-    `curl --header "Content-Type: application/json" --request GET '<host>:<port>/elas4rdf_rest/?query=the%20beatles&index=my_index'`
+    `curl --header "Content-Type: application/json" --request GET '<host>:<port>/elas4rdf_rest/?id=dataset_id&query=the%20beatles'`
       
