@@ -135,7 +135,7 @@ public class Controller implements ErrorController {
 
             }
 
-            if (resourceUri != null) {
+            if (resourceUri != null && !resourceUri.isEmpty()) {
                 this.KNOWN_NAME_SPACES.add(resourceUri);
             }
 
@@ -204,7 +204,7 @@ public class Controller implements ErrorController {
         if (indexProfilesMap.containsKey(id)) {
             indexProfile = indexProfilesMap.get(id);
         } else {
-            errorMap.put("GET /", "requested id '\" + id + \"' does not exist. Perform a POST '/initialize_index' request first.");
+            errorMap.put("GET /", "Requested id '" + id + "' does not exist. Perform a POST '/initialize_index' request first.");
             return new Response(errorMap);
         }
 
@@ -352,7 +352,7 @@ public class Controller implements ErrorController {
                 errorMap.put("Error", "Error 404 : Not Found");
                 return errorMap;
             } else if (statusCode == HttpStatus.INTERNAL_SERVER_ERROR.value()) {
-                errorMap.put("Error", "Server Error 505" + "" + exception);
+                errorMap.put("Error", "Server Error 505: " + exception);
 
                 /* Print help message for URL params */
                 if (param_error) {
@@ -407,8 +407,10 @@ public class Controller implements ErrorController {
     }
 
     public static boolean isResource(String fullUri) {
-        for (Object nameSpace : KNOWN_NAME_SPACES) {
-            return fullUri.contains(nameSpace.toString());
+        for (String nameSpace : KNOWN_NAME_SPACES) {
+            if (fullUri.contains(nameSpace)) {
+                return true;
+            }
         }
         return false;
     }
