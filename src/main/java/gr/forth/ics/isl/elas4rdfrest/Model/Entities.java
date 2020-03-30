@@ -64,7 +64,8 @@ public class Entities {
 
             /* normalize score */
             if (max_score != min_score) {
-                norm_score = score / max_score;
+                //norm_score = score / max_score;
+                norm_score = (score - min_score) / (max_score - min_score);
             }
 
             /* Store entities based on subject OR/AND object */
@@ -104,7 +105,6 @@ public class Entities {
                 .stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
-
 
         /* store max-score of entities for normalization */
         try {
@@ -153,7 +153,7 @@ public class Entities {
         int t = analyzedKeywords.size();
         int n = analyzedQueryTokens.size();
 
-        return (Math.pow(e, t) / (2 * Math.pow(e, n)) + 0.5);
+        return (Math.pow(e, t) / (2 * Math.pow(e, n)) + Controller.aggregationFactor);
 
     }
 

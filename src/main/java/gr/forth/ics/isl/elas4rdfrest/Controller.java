@@ -34,6 +34,7 @@ public class Controller implements ErrorController {
     public static int LIMIT_RESULTS = 100;
     public static boolean highlightResults = false;
     public static boolean aggregationPenalty = true;
+    public static float aggregationFactor = 0.5f;
     public static TimeValue elasticTook;
 
     public static ElasticController elasticControl;
@@ -160,10 +161,12 @@ public class Controller implements ErrorController {
     /**
      * Handles general GET requests
      *
-     * @param query : input query
-     * @param id    : input id - correspond to unique IndexProfile
-     * @param size  : input size (defaults 100)
-     * @param field : input fields (e.g. subjectKeywords .. -> default: allKeywords)
+     * @param query              : input query
+     * @param id                 : input id - corresponds to unique IndexProfile
+     * @param size               : input size (defaults 100)
+     * @param type               : return type (triples OR entities (both = default) )
+     * @param highlightResults   : use ES highlighter (default = false)
+     * @param aggregationPenalty : use aggregation penalty (for entities)
      * @return
      * @throws IOException
      */
@@ -172,10 +175,10 @@ public class Controller implements ErrorController {
             @RequestParam(value = "query") String query,
             @RequestParam(value = "id") String id,
             @RequestParam(value = "size", defaultValue = "100") String size,
-            @RequestParam(value = "field", defaultValue = "allKeywords") String field,
             @RequestParam(value = "type", defaultValue = "both") String type,
             @RequestParam(value = "highlightResults", defaultValue = "false") String highlightResults,
-            @RequestParam(value = "aggregationPenalty", defaultValue = "true") String aggregationPenalty
+            @RequestParam(value = "aggregationPenalty", defaultValue = "true") String aggregationPenalty,
+            @RequestParam(value = "aggregationFactor", defaultValue = "") String aggregationFactor
     ) throws IOException {
 
         IndexProfile indexProfile;
@@ -201,6 +204,11 @@ public class Controller implements ErrorController {
             Controller.aggregationPenalty = true;
         }
 
+        if (!aggregationFactor.isEmpty()) {
+            Controller.aggregationFactor = Float.parseFloat(aggregationFactor);
+        }
+
+
         if (indexProfilesMap.containsKey(id)) {
             indexProfile = indexProfilesMap.get(id);
         } else {
@@ -215,16 +223,16 @@ public class Controller implements ErrorController {
 
         switch (type) {
             case "triples":
-                triples = getTriples(query, "", indexProfile);
+                triples = getTriples(query, "", indexProfile, "");
                 response = new Response(triples);
                 break;
             case "entities":
-                triples = getTriples(query, "", indexProfile);
+                triples = getTriples(query, "", indexProfile, "");
                 entities = getEntities(query, triples, indexProfile.getIndex_name());
                 response = new Response(entities);
                 break;
             case "both":
-                triples = getTriples(query, "", indexProfile);
+                triples = getTriples(query, "", indexProfile, "");
                 entities = getEntities(query, triples, indexProfile.getIndex_name());
                 response = new Response(triples, entities);
                 break;
@@ -303,16 +311,16 @@ public class Controller implements ErrorController {
 
         switch (type) {
             case "triples":
-                triples = getTriples("", body, indexProfile);
+                triples = getTriples("", body, indexProfile, index);
                 response = new Response(triples);
                 break;
             case "entities":
-                triples = getTriples("", body, indexProfile);
+                triples = getTriples("", body, indexProfile, index);
                 entities = getEntities("", triples, index);
                 response = new Response(entities);
                 break;
             case "both":
-                triples = getTriples("", body, indexProfile);
+                triples = getTriples("", body, indexProfile, index);
                 entities = getEntities("", triples, index);
                 response = new Response(triples, entities);
                 break;
@@ -385,17 +393,19 @@ public class Controller implements ErrorController {
     /**
      * Helper function
      */
-    public Triples getTriples(String query, String body, IndexProfile indexProfile) throws IOException {
+    public Triples getTriples(String query, String body, IndexProfile indexProfile, String indexName) throws IOException {
 
-        /* low-level client -> use param 'body' */
+        /* low-level client -> use param 'body' & 'indexName' */
         if (query.isEmpty()) {
-            String elResponse = elasticControl.restLow(body, indexProfile.getIndex_name());
+            String elResponse = elasticControl.restLow(body, indexName);
             return new Triples(elResponse, indexProfile.getIndex_fields_list(), indexProfile.getKeywords_properties());
         }
         /* high-level client -> use param 'query' */
         else {
             SearchHits elHits = elasticControl.restHigh(indexProfile.getIndex_name(), query, indexProfile.getIndex_fields_map());
-            return new Triples(elHits, indexProfile.getIndex_fields_list(), indexProfile.getKeywords_properties());
+            Triples triples = new Triples(elHits, indexProfile.getIndex_fields_list(), indexProfile.getKeywords_properties());
+
+            return triples;
         }
     }
 
@@ -403,7 +413,8 @@ public class Controller implements ErrorController {
      * Helper function
      */
     public Entities getEntities(String query, Triples triples, String index) {
-        return new Entities(query, triples.getResults(), index);
+        Entities entities = new Entities(query, triples.getResults(), index);
+        return entities;
     }
 
     public static boolean isResource(String fullUri) {

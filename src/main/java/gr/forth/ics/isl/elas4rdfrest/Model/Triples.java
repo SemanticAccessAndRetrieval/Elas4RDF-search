@@ -70,7 +70,6 @@ public class Triples {
             /* add  all 'extended' fields */
             for (String ext_field : indexFieldsList) {
 
-
                 if (sourceMap.containsKey(ext_field)) {
 
                     StringBuilder ext_field_b = new StringBuilder(ext_field);
@@ -217,7 +216,7 @@ public class Triples {
                 String predicateKeywordsField = "predicateKeywords";
                 String objectKeywordsField = "objectKeywords";
 
-                /* if a property must replace URI keywords */
+                /* if a property must replace the URI keywords */
                 if (indexKeywordsProperties.containsKey("subjectKeywords")) {
                     subjectKeywordsField = indexKeywordsProperties.get("subjectKeywords");
                 }
