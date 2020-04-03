@@ -29,9 +29,10 @@ import javax.servlet.http.HttpServletRequest;
 public class Controller implements ErrorController {
 
 
-    public static Map<String, IndexProfile> indexProfilesMap;
+    private static Map<String, IndexProfile> indexProfilesMap;
 
     public static int LIMIT_RESULTS = 100;
+    public static int OFFSET = 0;
     public static boolean highlightResults = false;
     public static boolean aggregationPenalty = true;
     public static float aggregationFactor = 0.5f;
@@ -164,6 +165,7 @@ public class Controller implements ErrorController {
      * @param query              : input query
      * @param id                 : input id - corresponds to unique IndexProfile
      * @param size               : input size (defaults 100)
+     * @param offset             : used for pagination
      * @param type               : return type (triples OR entities (both = default) )
      * @param highlightResults   : use ES highlighter (default = false)
      * @param aggregationPenalty : use aggregation penalty (for entities)
@@ -175,6 +177,7 @@ public class Controller implements ErrorController {
             @RequestParam(value = "query") String query,
             @RequestParam(value = "id") String id,
             @RequestParam(value = "size", defaultValue = "100") String size,
+            @RequestParam(value = "offset", defaultValue = "0") String offset,
             @RequestParam(value = "type", defaultValue = "both") String type,
             @RequestParam(value = "highlightResults", defaultValue = "false") String highlightResults,
             @RequestParam(value = "aggregationPenalty", defaultValue = "true") String aggregationPenalty,
@@ -190,6 +193,12 @@ public class Controller implements ErrorController {
 
         } catch (NumberFormatException e) {
             Controller.LIMIT_RESULTS = 100;
+        }
+
+        try {
+            Controller.OFFSET = Integer.parseInt(offset);
+        } catch (NumberFormatException e) {
+            Controller.OFFSET = 0;
         }
 
         if (highlightResults.equals("true")) {
@@ -335,7 +344,7 @@ public class Controller implements ErrorController {
     }
 
     @RequestMapping(value = "/error")
-    public Map<String, Object> error(HttpServletRequest request) throws IOException {
+    public Map<String, Object> error(HttpServletRequest request) {
         Map<String, Object> errorMap = new LinkedHashMap<>();
         Object status = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
         Object exception = "";
@@ -353,7 +362,7 @@ public class Controller implements ErrorController {
         }
 
         if (status != null) {
-            Integer statusCode = Integer.valueOf(status.toString());
+            int statusCode = Integer.parseInt(status.toString());
             String error = "";
 
             if (statusCode == HttpStatus.NOT_FOUND.value()) {
@@ -370,7 +379,7 @@ public class Controller implements ErrorController {
                 return errorMap;
 
             } else if (statusCode == HttpStatus.BAD_REQUEST.value()) {
-                ;
+
                 errorMap.put("Error", "400 : Bad Request");
                 errorMap.put("Help", Response.getHelpMessage());
 
@@ -393,7 +402,7 @@ public class Controller implements ErrorController {
     /**
      * Helper function
      */
-    public Triples getTriples(String query, String body, IndexProfile indexProfile, String indexName) throws IOException {
+    private Triples getTriples(String query, String body, IndexProfile indexProfile, String indexName) throws IOException {
 
         /* low-level client -> use param 'body' & 'indexName' */
         if (query.isEmpty()) {
@@ -403,18 +412,15 @@ public class Controller implements ErrorController {
         /* high-level client -> use param 'query' */
         else {
             SearchHits elHits = elasticControl.restHigh(indexProfile.getIndex_name(), query, indexProfile.getIndex_fields_map());
-            Triples triples = new Triples(elHits, indexProfile.getIndex_fields_list(), indexProfile.getKeywords_properties());
-
-            return triples;
+            return new Triples(elHits, indexProfile.getIndex_fields_list(), indexProfile.getKeywords_properties());
         }
     }
 
     /**
      * Helper function
      */
-    public Entities getEntities(String query, Triples triples, String index) {
-        Entities entities = new Entities(query, triples.getResults(), index);
-        return entities;
+    private Entities getEntities(String query, Triples triples, String index) {
+        return new Entities(query, triples.getResults(), index);
     }
 
     public static boolean isResource(String fullUri) {

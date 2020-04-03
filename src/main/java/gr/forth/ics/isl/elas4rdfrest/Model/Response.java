@@ -68,7 +68,7 @@ public class Response {
         Map<String, Object> lowLevelMap = new LinkedHashMap<>();
 
         highLevelMap.put("required", Stream.of("query=[string]", "id=[string]").collect(Collectors.toCollection(LinkedHashSet::new)));
-        highLevelMap.put("optional", Stream.of("size=[int]", "type=[string]", "highlightResults=[boolean]").collect(Collectors.toCollection(LinkedHashSet::new)));
+        highLevelMap.put("optional", Stream.of("size=[int]", "offset=[int]", "type=[string]", "highlightResults=[boolean]").collect(Collectors.toCollection(LinkedHashSet::new)));
 
         lowLevelMap.put("required", Stream.of("body=[string]", "index=[string]").collect(Collectors.toCollection(LinkedHashSet::new)));
         lowLevelMap.put("optional", Stream.of("size=[int]", "type=[string]").collect(Collectors.toCollection(LinkedHashSet::new)));

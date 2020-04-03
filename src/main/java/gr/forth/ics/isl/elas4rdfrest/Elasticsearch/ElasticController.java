@@ -118,6 +118,7 @@ public class ElasticController {
         /* Sort results based on score(descending) */
         searchSourceBuilder.sort(new ScoreSortBuilder().order(SortOrder.DESC));
         searchSourceBuilder.size(Controller.LIMIT_RESULTS);
+        searchSourceBuilder.from(Controller.OFFSET);
 
         /* Applying source builder upon request */
         searchRequest.source(searchSourceBuilder.highlighter(highlightBuilder));
