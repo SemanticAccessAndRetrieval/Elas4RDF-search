@@ -4,7 +4,7 @@ Performs **keyword** search over **RDF** data, with classic IR techniques, upon 
 This project initializes a REST API for exploiting the indexes created [here](https://github.com/SemanticAccessAndRetrieval/Elas4RDF-index). 
 System's response contains a ranked list of both a) triples and b) entities. 
 
-Requires Java 8 (or later) and a running Elasticsearch instance.
+Requires Java 8 (or later) and a running Elasticsearch (elasticsearch-6.8) instance.
 
 ### Install
 Build project and package with `mvn package`. The generated .war file inside the `Elas4RDF-search/target` 
@@ -26,7 +26,7 @@ syntax:
      "index.name": <ES_index_name>,
      "index.fields": {
        <field_1> : <field_boost_1>,
-       <field_1> : <field_boost_1>,
+       <field_2> : <field_boost_2>,
         ...
      }
    }
@@ -35,7 +35,7 @@ syntax:
 On success, response contains a confirmation .JSON message. 
 
 Note, this .json file should be automatically created after completing the index process from [here](https://github.com/SemanticAccessAndRetrieval/Elas4RDF-index). An example
-can be found in `/src/resources/examples/` folder.
+can be found in `src/resources/examples/` folder.
 
 #### 2) Performing a Query
 
@@ -45,12 +45,12 @@ Queries are expressed through the `GET` method while requests accept either a hi
 
    _required_ `id=[string]` `query=[string]`
    
-   _optional_ `size=[int]`  `type=[string]`
+   _optional_ `size=[int]`  `offset=[int]` `type=[string]`
     
     `id` is the dataset identifier created in **(1)** and
     `query` can include any free-text keywords. 
     
-    `size` corresponds to the number of the returned triples and
+    `size` corresponds to the number of the returned triples, `offset` supports pagination (only for triples) and 
     `type` corresponds to the answer return type: "triples", "entities" or "both" (default).
     
             
