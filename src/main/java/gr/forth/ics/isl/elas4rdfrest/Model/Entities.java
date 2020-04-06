@@ -68,10 +68,10 @@ public class Entities {
                 norm_score = (score - min_score) / (max_score - min_score);
             }
 
-            /* Store entities based on subject OR/AND object */
+            /* Store entities based on subject */
             if (Controller.isResource(subject)) {
                 /* apply aggregation penalty */
-                double local_norm = norm_score * calculateAggregationPenalty("subjectKeywords", sub_keys, index);
+                double local_norm = norm_score * calculateAggregationPenalty(sub_keys, "subjectKeywords", index);
 
                 /* calculate the 'ndcg-like, log-based' gain */
                 double localGain = (Math.pow(2, local_norm) - 1) / (Math.log(i + 1) / Math.log(2));
@@ -80,9 +80,10 @@ public class Entities {
                 entitiesExt.putIfAbsent(subject, triple.get("sub_ext"));
             }
 
+            /* Store entities based on object */
             if (Controller.isResource(object)) {
                 /* apply aggregation penalty */
-                double local_norm = norm_score * calculateAggregationPenalty("objectKeywords", obj_keys, index);
+                double local_norm = norm_score * calculateAggregationPenalty(obj_keys, "objectKeywords", index);
 
                 /* calculate the 'ndcg-like, log-based' gain */
                 double localGain = (Math.pow(2, local_norm) - 1) / (Math.log(i + 1) / Math.log(2));
@@ -136,24 +137,30 @@ public class Entities {
      * If a resource (URI) does not a contain (multiple) query keywords -> apply aggregation penalty
      *
      * @param keywords : of the URI
+     * @param field    : ES index field (used in analyze)
+     * @param index    : ES index (used in analyze)
      * @return penalty
      */
-    private double calculateAggregationPenalty(String field, String keywords, String index) {
+    private double calculateAggregationPenalty(String keywords, String field, String index) {
 
         if (!Controller.aggregationPenalty) {
             return 1;
         }
 
         Set<String> analyzedKeywords = Controller.elasticControl.analyze(field, keywords, index);
+        int q_e2 = analyzedKeywords.size();
+
         analyzedKeywords.retainAll(analyzedQueryTokens);
 
-        /*  t : number of common terms between URI keywords & query
-         *  n : number of query keywords
+        /*  q_e     : number of common terms between URI keywords & query
+         *  q_e2    : the number of terms in the URI that do not appear in the query
+         *  q_t     : number of query keywords
          * */
-        int t = analyzedKeywords.size();
-        int n = analyzedQueryTokens.size();
+        int q_e = analyzedKeywords.size();
+        q_e2 = q_e2 - q_e;
+        int q_t = analyzedQueryTokens.size();
 
-        return (Math.pow(e, t) / (2 * Math.pow(e, n)) + Controller.aggregationFactor);
+        return (Math.pow(e, q_e) / (2 * Math.pow(e, q_t) * Math.pow(e, q_e2)) + Controller.aggregationFactor);
 
     }
 
