@@ -13,7 +13,6 @@ public class Entities {
 
     private List<Map<String, Object>> results;
     private Set<String> analyzedQueryTokens;
-    private final double e = Math.exp(1);
 
     private double max_score = 0;
 
@@ -71,7 +70,7 @@ public class Entities {
             /* Store entities based on subject */
             if (Controller.isResource(subject)) {
                 /* apply aggregation penalty */
-                double local_norm = norm_score * calculateAggregationPenalty(sub_keys, "subjectKeywords", index);
+                double local_norm = score * calculateAggregationPenalty(sub_keys, "subjectKeywords", index);
 
                 /* calculate the 'ndcg-like, log-based' gain */
                 double localGain = (Math.pow(2, local_norm) - 1) / (Math.log(i + 1) / Math.log(2));
@@ -83,7 +82,7 @@ public class Entities {
             /* Store entities based on object */
             if (Controller.isResource(object)) {
                 /* apply aggregation penalty */
-                double local_norm = norm_score * calculateAggregationPenalty(obj_keys, "objectKeywords", index);
+                double local_norm = score * calculateAggregationPenalty(obj_keys, "objectKeywords", index);
 
                 /* calculate the 'ndcg-like, log-based' gain */
                 double localGain = (Math.pow(2, local_norm) - 1) / (Math.log(i + 1) / Math.log(2));
@@ -147,20 +146,20 @@ public class Entities {
             return 1;
         }
 
+        double a = Controller.aggregationFactor;
+
         Set<String> analyzedKeywords = Controller.elasticControl.analyze(field, keywords, index);
-        int q_e2 = analyzedKeywords.size();
 
-        analyzedKeywords.retainAll(analyzedQueryTokens);
-
-        /*  q_e     : number of common terms between URI keywords & query
-         *  q_e2    : the number of terms in the URI that do not appear in the query
-         *  q_t     : number of query keywords
+        /*  uri_n         : number of distinct uri terms
+         *  q_n           : number of distinct query terms
+         *  common_n      : number of common terms between URI keywords & query
          * */
-        int q_e = analyzedKeywords.size();
-        q_e2 = q_e2 - q_e;
-        int q_t = analyzedQueryTokens.size();
+        double uri_n = analyzedKeywords.size();
+        analyzedKeywords.retainAll(analyzedQueryTokens);
+        double common_n = analyzedKeywords.size();
+        double q_n = analyzedQueryTokens.size();
 
-        return (Math.pow(e, q_e) / (2 * Math.pow(e, q_t) * Math.pow(e, q_e2)) + Controller.aggregationFactor);
+        return a * (2 * common_n / (uri_n + q_n)) + (1 - a);
 
     }
 

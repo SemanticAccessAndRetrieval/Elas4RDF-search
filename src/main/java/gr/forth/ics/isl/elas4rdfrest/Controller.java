@@ -35,7 +35,7 @@ public class Controller implements ErrorController {
     public static int OFFSET = 0;
     public static boolean highlightResults = false;
     public static boolean aggregationPenalty = true;
-    public static float aggregationFactor = 0.5f;
+    public static double aggregationFactor = 0.5f;
     public static TimeValue elasticTook;
 
     public static ElasticController elasticControl;
@@ -214,9 +214,8 @@ public class Controller implements ErrorController {
         }
 
         if (!aggregationFactor.isEmpty()) {
-            Controller.aggregationFactor = Float.parseFloat(aggregationFactor);
+            Controller.aggregationFactor = Double.parseDouble(aggregationFactor);
         }
-
 
         if (indexProfilesMap.containsKey(id)) {
             indexProfile = indexProfilesMap.get(id);
