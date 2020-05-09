@@ -39,7 +39,7 @@ can be found in `src/resources/examples/` folder.
 
 #### 2) Performing a Query
 
-Queries are expressed through the `GET` method while requests accept either a high-level or a low-level syntax. URL parameters include:
+Queries are expressed through the `GET` method while requests accept either a high-level or a low-level syntax.
 
 * **High-Level syntax** -> `GET /high-level`
 
@@ -79,7 +79,7 @@ Queries are expressed through the `GET` method while requests accept either a hi
     
     
      
- Using the `curl` command a (high-level syntax) request can be expressed as:
+ example: using the `curl` command a (high-level syntax) request can be expressed as:
  
     `curl --header "Content-Type: application/json" --request GET '<host>:<port>/elas4rdf_rest/high-level/?id=dataset_id&query=the%20beatles'`
       
