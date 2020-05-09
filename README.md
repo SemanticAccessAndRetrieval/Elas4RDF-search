@@ -17,7 +17,7 @@ If file is not found, options default to `localhost:9200`.
 #### 1) Initializing an index
 Application can serve different indexes (collections) by preserving a state (non-persistent) that corresponds to a given configuration. 
 
-Initialize an index through a `POST /initialize_index` method with request body a .json file with the following
+Initialize an index through a `POST /datasets` method with request body a .json file with the following
 syntax:
 
 ```
@@ -41,7 +41,7 @@ can be found in `src/resources/examples/` folder.
 
 Queries are expressed through the `GET` method while requests accept either a high-level or a low-level syntax. URL parameters include:
 
-* **High-Level syntax** -> `GET /`
+* **High-Level syntax** -> `GET /high-level`
 
    _required_ `id=[string]` `query=[string]`
    
@@ -81,5 +81,5 @@ Queries are expressed through the `GET` method while requests accept either a hi
      
  Using the `curl` command a (high-level syntax) request can be expressed as:
  
-    `curl --header "Content-Type: application/json" --request GET '<host>:<port>/elas4rdf_rest/?id=dataset_id&query=the%20beatles'`
+    `curl --header "Content-Type: application/json" --request GET '<host>:<port>/elas4rdf_rest/high-level/?id=dataset_id&query=the%20beatles'`
       
