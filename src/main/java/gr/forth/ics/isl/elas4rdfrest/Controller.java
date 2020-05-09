@@ -81,12 +81,12 @@ public class Controller implements ErrorController {
     }
 
     /**
-     * Handles '/index_initialize' POST request
+     * Handles '/datasets' POST request
      *
      * @param jsonBody : input (-d) body
      * @return response : JSON-formatted
      */
-    @PostMapping(value = "/initialize_index", consumes = "application/json", produces = "application/json")
+    @PostMapping(value = "/datasets", consumes = "application/json", produces = "application/json")
     public Response initializeIndex(@RequestBody String jsonBody) {
 
         Response response;
@@ -109,11 +109,11 @@ public class Controller implements ErrorController {
             Map<String, Object> errorMap = new HashMap<>();
 
             if (id == null) {
-                errorMap.put("initialize_index error", "In POST request '/initialize_index': id is empty");
+                errorMap.put("/datasets error", "In POST request '/datasets': id is empty");
                 return new Response(errorMap);
             }
             if (index == null) {
-                errorMap.put("initialize_index error", "In POST request '/initialize_index': index.name is empty");
+                errorMap.put("/datasets error", "In POST request '/datasets': index.name is empty");
                 return new Response(errorMap);
             }
 
@@ -124,7 +124,7 @@ public class Controller implements ErrorController {
                     indexFieldsMap.put((String) field, boost);
                 }
             } else {
-                errorMap.put("initialize_index error", "In POST request '/initialize_index': index.fields is empty");
+                errorMap.put("/datasets error", "In POST request '/datasets': index.fields is empty");
                 return new Response(errorMap);
             }
 
@@ -150,7 +150,7 @@ public class Controller implements ErrorController {
 
         } catch (Exception e) {
             Map<String, Object> errorMap = new HashMap<>();
-            errorMap.put("initialize_index error", "Exception occured: " + e.getMessage());
+            errorMap.put("/datasets error", "Exception occured: " + e.getMessage());
 
             response = new Response(errorMap);
         }
@@ -172,7 +172,7 @@ public class Controller implements ErrorController {
      * @return
      * @throws IOException
      */
-    @GetMapping("/")
+    @GetMapping("/high-level")
     public Response highLevelResponse(
             @RequestParam(value = "query") String query,
             @RequestParam(value = "id") String id,
@@ -259,8 +259,8 @@ public class Controller implements ErrorController {
      * @return a Response containing all
      * properties: 'id', 'index', 'fields'
      */
-    @GetMapping("/get_properties")
-    public Response getProperties(@RequestParam(value = "id") String id) {
+    @GetMapping("/datasets/{id}")
+    public Response getProperties(@PathVariable String id) {
 
         IndexProfile indexProfile;
         Map<String, Object> errorMap = new HashMap<>();
@@ -293,7 +293,7 @@ public class Controller implements ErrorController {
      * @return
      * @throws IOException
      */
-    @GetMapping("/low_level")
+    @GetMapping("/low-level")
     public Response lowLevelResponse(
             @RequestBody() String body,
             @RequestParam(value = "index") String index,
